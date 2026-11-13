@@ -192,15 +192,30 @@ async def approve_faculty_profile(
         raise HTTPException(status_code=404, detail="Faculty profile not found.")
         
     new_status = "approved" if payload.approved else "rejected"
+    now_iso = datetime.utcnow().isoformat()
     await db.faculty_profiles.update_one(
         {"user_id": faculty_user_id},
         {"$set": {
             "profile_status": new_status,
             "approved_by": current_user["_id"],
-            "approved_at": datetime.utcnow().isoformat(),
+            "approved_at": now_iso,
             "admin_comments": payload.comments or ""
         }}
     )
+    # Activate or deactivate user login
+    await db.users.update_one(
+        {"_id": faculty_user_id},
+        {"$set": {"is_active": payload.approved}}
+    )
+    # Record audit log
+    await db.audit_logs.insert_one({
+        "action": "FACULTY_APPROVAL",
+        "status": new_status,
+        "faculty_user_id": faculty_user_id,
+        "admin_user_id": current_user["_id"],
+        "comments": payload.comments or "",
+        "created_at": now_iso
+    })
     return {"message": f"Faculty profile {new_status} successfully."}
 
 @router.get("/students")

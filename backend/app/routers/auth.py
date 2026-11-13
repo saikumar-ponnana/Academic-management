@@ -120,7 +120,7 @@ async def register(req: UserRegisterRequest, response: Response):
                 detail=f"Faculty ID {fid} is already registered."
             )
 
-        # Automatic approval: No admin approval required!
+        # Faculty Registration: Requires Administrator Approval
         faculty_doc = {
             "_id": f"prof-{user_id}",
             "user_id": user_id,
@@ -132,21 +132,29 @@ async def register(req: UserRegisterRequest, response: Response):
             "department_code": req.department_code or "CYBER",
             "designation": req.designation or "Assistant Professor",
             "highest_degree": req.highest_degree or "Ph.D. / M.Tech",
-            "specialization": req.specialization or "Computer Science",
+            "specialization": req.specialization or "Cyber Security",
             "qualifications": req.highest_degree or "M.Tech",
-            "profile_status": "approved",  # Automatically approved immediately
+            "profile_status": "pending",  # Pending Admin Approval
             "completion_percentage": 85,
-            "created_at": now_iso,
-            "approved_at": now_iso
+            "created_at": now_iso
         }
         await db.faculty_profiles.insert_one(faculty_doc)
+        # Deactivate user login until approved by Admin
+        await db.users.update_one({"_id": user_id}, {"$set": {"is_active": False}})
 
         user_data["faculty_id"] = fid
         user_data["department"] = faculty_doc["department"]
         user_data["department_code"] = faculty_doc["department_code"]
-        user_data["profile_status"] = "approved"
+        user_data["profile_status"] = "pending"
+        user_data["is_active"] = False
 
-    # Issue JWT token
+        return LoginResponse(
+            access_token="",
+            token_type="bearer",
+            user=user_data
+        )
+
+    # Issue JWT token (for students who get instant auto-enrollment)
     token = create_access_token(subject=user_id, role=role)
 
     response.set_cookie(
@@ -188,10 +196,23 @@ async def login(credentials: LoginRequest, response: Response):
             detail="Invalid credentials. Please verify your email/ID and password."
         )
         
+    if user.get("role") == "faculty":
+        fac = await db.faculty_profiles.find_one({"user_id": user["_id"]})
+        if fac and fac.get("profile_status") == "pending":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your faculty registration is currently pending Administrator approval. Once approved, you will be able to log in."
+            )
+        if fac and fac.get("profile_status") == "rejected":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your faculty registration has been declined by the administrator."
+            )
+
     if not user.get("is_active", True):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is deactivated. Please contact the administrator."
+            detail="Account is pending approval or deactivated. Please contact the administrator."
         )
         
     # Generate token

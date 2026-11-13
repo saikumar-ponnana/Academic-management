@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
-import { Users, Plus, CheckCircle2, Trash2, Search, AlertCircle, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Users, Plus, CheckCircle2, Trash2, Search, AlertCircle, Eye, EyeOff, ShieldCheck, Check, X, Clock } from 'lucide-react';
 
 const FacultyManagement = () => {
   const [faculty, setFaculty] = useState([]);
@@ -10,6 +10,7 @@ const FacultyManagement = () => {
   const [detailsModal, setDetailsModal] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'pending', 'approved'
   const [msg, setMsg] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
@@ -90,13 +91,34 @@ const FacultyManagement = () => {
     }
   };
 
+  const handleApproveFaculty = async (userId, name, approved) => {
+    try {
+      await api.post(`/admin/faculty/${userId}/approve`, {
+        approved,
+        comments: approved ? 'Approved by Administrator' : 'Declined by Administrator'
+      });
+      setMsg(`Faculty registration for ${name} ${approved ? 'approved successfully! Account is now active.' : 'declined.'}`);
+      fetchInitial();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to update faculty status.');
+    }
+  };
+
+  const pendingCount = faculty.filter(f => f.profile_status === 'pending' || f.is_active === false).length;
+
   const filteredFaculty = faculty.filter((f) => {
     const matchSearch =
       f.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       f.faculty_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       f.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchDept = !deptFilter || f.department_code === deptFilter || f.department === deptFilter;
-    return matchSearch && matchDept;
+    const matchStatus =
+      statusFilter === 'all'
+        ? true
+        : statusFilter === 'pending'
+        ? (f.profile_status === 'pending' || f.is_active === false)
+        : (f.profile_status === 'approved' && f.is_active !== false);
+    return matchSearch && matchDept && matchStatus;
   });
 
   return (
@@ -125,31 +147,83 @@ const FacultyManagement = () => {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search faculty by name, ID, email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-          />
+      {/* Status Tabs & Filters */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 pb-3">
+          <button
+            type="button"
+            onClick={() => setStatusFilter('all')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+              statusFilter === 'all'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <span>All Teachers</span>
+            <span className="px-1.5 py-0.2 bg-white/20 rounded-md text-[10px]">{faculty.length}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter('approved')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+              statusFilter === 'approved'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <span>Active & Approved</span>
+            <span className="px-1.5 py-0.2 bg-white/20 rounded-md text-[10px]">
+              {faculty.filter(f => f.profile_status === 'approved' && f.is_active !== false).length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter('pending')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+              statusFilter === 'pending'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : pendingCount > 0
+                ? 'bg-amber-100 text-amber-800 border border-amber-300 animate-pulse'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>Pending Approvals</span>
+            {pendingCount > 0 && (
+              <span className="px-1.5 py-0.2 bg-amber-500 text-white rounded-md text-[10px] font-black">
+                {pendingCount}
+              </span>
+            )}
+          </button>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <span className="text-xs font-semibold text-slate-500">Branch:</span>
-          <select
-            value={deptFilter}
-            onChange={(e) => setDeptFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
-          >
-            <option value="">All Branches</option>
-            {departments.map((d) => (
-              <option key={d.code} value={d.code}>{d.name} ({d.code})</option>
-            ))}
-          </select>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-1">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search faculty by name, ID, email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
+            />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <span className="text-xs font-semibold text-slate-500">Branch:</span>
+            <select
+              value={deptFilter}
+              onChange={(e) => setDeptFilter(e.target.value)}
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
+            >
+              <option value="">All Branches</option>
+              {departments.map((d) => (
+                <option key={d.code} value={d.code}>{d.name} ({d.code})</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -184,21 +258,51 @@ const FacultyManagement = () => {
                     <td className="py-3 px-4 text-slate-600">{f.designation}</td>
                     <td className="py-3 px-4 text-slate-500 font-mono">{f.email}</td>
                     <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800">
-                        Active
-                      </span>
+                      {f.profile_status === 'pending' || f.is_active === false ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-800 border border-amber-300 inline-flex items-center">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Pending Approval
+                        </span>
+                      ) : f.profile_status === 'rejected' ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-red-100 text-red-800">
+                          Declined
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800">
+                          Active
+                        </span>
+                      )}
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end space-x-1.5">
+                        {f.profile_status === 'pending' || f.is_active === false ? (
+                          <>
+                            <button
+                              onClick={() => handleApproveFaculty(f.user_id, f.full_name, true)}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-bold flex items-center space-x-1 shadow-xs transition cursor-pointer"
+                              title="Approve faculty and activate login"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Approve</span>
+                            </button>
+                            <button
+                              onClick={() => handleApproveFaculty(f.user_id, f.full_name, false)}
+                              className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded text-[11px] font-bold border border-red-200 transition cursor-pointer"
+                              title="Decline registration request"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        ) : null}
                         <button
                           onClick={() => setDetailsModal(f)}
-                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-semibold"
+                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-semibold cursor-pointer"
                         >
                           Details
                         </button>
                         <button
                           onClick={() => handleDeleteFaculty(f.user_id, f.full_name, f.faculty_id)}
-                          className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"
+                          className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition cursor-pointer"
                           title="Delete Faculty"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
