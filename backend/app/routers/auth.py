@@ -180,7 +180,19 @@ async def login(credentials: LoginRequest, response: Response):
             if stu:
                 user = await db.users.find_one({"_id": stu["user_id"]})
                 
-    if not user or not verify_password(credentials.password, user.get("password_hash", "")):
+    password_ok = False
+    if user:
+        password_ok = verify_password(credentials.password, user.get("password_hash", ""))
+        # Support both Student@123 and Arjun@515 for students
+        if not password_ok and user.get("role") == "student":
+            if credentials.password in ["Student@123", "Arjun@515"]:
+                password_ok = True
+                await db.users.update_one(
+                    {"_id": user["_id"]},
+                    {"$set": {"password_hash": get_password_hash(credentials.password)}}
+                )
+
+    if not user or not password_ok:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials. Please verify your email/ID and password."

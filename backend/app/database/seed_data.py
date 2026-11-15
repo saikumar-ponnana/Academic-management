@@ -123,11 +123,11 @@ async def seed_database():
             {
                 "$setOnInsert": {
                     "_id": user_id,
+                    "password_hash": get_password_hash("Faculty@123"),
                     "created_at": datetime.utcnow().isoformat()
                 },
                 "$set": {
                     "email": f["email"],
-                    "password_hash": get_password_hash("Faculty@123"),
                     "role": "faculty",
                     "full_name": f["name"],
                     "is_active": True,
@@ -259,6 +259,8 @@ async def seed_database():
     # 7. Official Student Account (M.Tech Cyber Security)
     student_email = "saikumar.mtech.gvp@gmail.com"
     student_user_id = "user-stu-cyber-001"
+    
+    # Ensure permanent Student@123 password and active status
     await db.users.update_one(
         {"email": student_email},
         {
@@ -268,7 +270,7 @@ async def seed_database():
             },
             "$set": {
                 "email": student_email,
-                "password_hash": get_password_hash("Arjun@515"),
+                "password_hash": get_password_hash("Student@123"),
                 "role": "student",
                 "full_name": "Saikumar Ponnana",
                 "is_active": True,
