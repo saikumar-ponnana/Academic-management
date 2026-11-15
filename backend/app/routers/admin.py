@@ -17,6 +17,12 @@ import uuid
 
 router = APIRouter(prefix="/admin", tags=["Administrator Management"])
 
+@router.post("/reseed")
+async def trigger_reseed(current_user: dict = Depends(require_role(["admin"]))):
+    from app.database.seed_data import seed_database
+    await seed_database()
+    return {"message": "Database baseline and official faculty/courses re-seeded successfully."}
+
 @router.get("/dashboard")
 async def get_admin_dashboard(current_user: dict = Depends(require_role(["admin"]))):
     db = get_database()
