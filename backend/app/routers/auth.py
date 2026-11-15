@@ -44,6 +44,7 @@ async def register(req: UserRegisterRequest, response: Response):
         "role": role,
         "full_name": req.full_name.strip(),
         "is_active": True if role == "admin" else False,
+        "has_custom_password": True,
         "created_at": now_iso
     }
     await db.users.insert_one(user_doc)

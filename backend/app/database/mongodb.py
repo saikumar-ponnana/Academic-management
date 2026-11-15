@@ -41,6 +41,30 @@ async def connect_to_mongo():
     
     await ensure_indexes()
 
+async def try_reconnect_to_real_mongo():
+    if not db_wrapper.is_mock and db_wrapper.db is not None:
+        return True
+    try:
+        real_client = AsyncIOMotorClient(
+            settings.MONGODB_URL,
+            serverSelectionTimeoutMS=8000,
+            tls=True,
+            tlsAllowInvalidCertificates=True
+        )
+        await real_client.admin.command('ping')
+        db_wrapper.client = real_client
+        db_wrapper.db = real_client[settings.DATABASE_NAME]
+        db_wrapper.is_mock = False
+        db_wrapper.connection_error = ""
+        logger.info(f"Reconnected successfully to real MongoDB Atlas: {settings.DATABASE_NAME}")
+        await ensure_indexes()
+        from app.database.seed_data import seed_database
+        await seed_database()
+        return True
+    except Exception as e:
+        db_wrapper.connection_error = f"{type(e).__name__}: {str(e)}"
+        return False
+
 async def close_mongo_connection():
     if db_wrapper.client:
         logger.info("Closing MongoDB connection...")

@@ -81,7 +81,10 @@ async def root():
 
 @app.get("/api/health")
 async def health_check():
-    from app.database.mongodb import db_wrapper
+    from app.database.mongodb import db_wrapper, try_reconnect_to_real_mongo
+    if db_wrapper.is_mock:
+        await try_reconnect_to_real_mongo()
+        
     masked_url = ""
     if settings.MONGODB_URL:
         if "@" in settings.MONGODB_URL:

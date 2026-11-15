@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
-import { Settings, Save, CheckCircle2, Clock, Globe, Building2, Plus, Trash2, Lock, Eye, EyeOff, ShieldCheck, KeyRound, AlertCircle } from 'lucide-react';
+import { Settings, Save, CheckCircle2, Clock, Globe, Building2, Plus, Trash2, Lock, Eye, EyeOff, ShieldCheck, KeyRound, AlertCircle, Database, RefreshCw } from 'lucide-react';
 
 const SettingsPage = () => {
   const [settings, setSettings] = useState({
@@ -30,9 +30,22 @@ const SettingsPage = () => {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  // Cloud Database Status
+  const [dbHealth, setDbHealth] = useState(null);
+  const [reconnectingDb, setReconnectingDb] = useState(false);
+  const [dbMsg, setDbMsg] = useState('');
+  const [dbErr, setDbErr] = useState('');
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  const checkDb = async () => {
+    try {
+      const hRes = await api.get('/health');
+      setDbHealth(hRes.data);
+    } catch (e) {}
+  };
 
   const fetchData = async () => {
     try {
@@ -42,10 +55,26 @@ const SettingsPage = () => {
       ]);
       setSettings(sRes.data);
       setDepartments(dRes.data);
+      await checkDb();
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleReconnectDb = async () => {
+    setReconnectingDb(true);
+    setDbMsg('');
+    setDbErr('');
+    try {
+      const res = await api.post('/admin/reconnect-db');
+      setDbMsg(res.data.message);
+      await checkDb();
+    } catch (err) {
+      setDbErr(err.response?.data?.detail || 'Could not connect to MongoDB Atlas cluster. Check IP Access List.');
+    } finally {
+      setReconnectingDb(false);
     }
   };
 
@@ -146,6 +175,79 @@ const SettingsPage = () => {
           <span>{msg}</span>
         </div>
       )}
+
+      {/* Card 0: Cloud Database Connection Status */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center space-x-2.5">
+            <div className={`p-2 rounded-xl ${dbHealth?.is_mock_database ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">
+                MongoDB Atlas Cloud Database
+              </h3>
+              <p className="text-xs text-slate-500">
+                Cluster: <span className="font-mono text-slate-700">Cluster0</span> • Database: <span className="font-mono font-bold text-slate-700">{dbHealth?.database_name || 'student_center_db'}</span>
+              </p>
+            </div>
+          </div>
+
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border shrink-0 ${
+            dbHealth?.is_mock_database
+              ? 'bg-amber-50 text-amber-800 border-amber-200'
+              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+          }`}>
+            {dbHealth?.is_mock_database ? '● In-Memory Fallback' : '● Live Atlas Connected'}
+          </span>
+        </div>
+
+        {dbHealth?.is_mock_database ? (
+          <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200/80 space-y-2 text-xs text-amber-900">
+            <p className="font-semibold flex items-center space-x-1.5">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>MongoDB Atlas IP Access Authorization Required</span>
+            </p>
+            <p className="text-[11px] text-amber-800 leading-relaxed">
+              Your Atlas cluster is rejecting the connection (<span className="font-mono">TLS alert internal error</span>). To store student records and study materials permanently, log in to <strong>cloud.mongodb.com</strong>, navigate to <strong>Network Access</strong>, and add <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">0.0.0.0/0</code> (Allow Access from Anywhere).
+            </p>
+          </div>
+        ) : (
+          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center space-x-2 font-medium">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>All student registrations, approvals, passwords, and study materials are actively stored directly in your permanent MongoDB Atlas cloud cluster.</span>
+          </div>
+        )}
+
+        {dbMsg && (
+          <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs flex items-center space-x-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{dbMsg}</span>
+          </div>
+        )}
+
+        {dbErr && (
+          <div className="p-3 bg-red-50 text-red-800 border border-red-200 rounded-xl text-xs flex items-start space-x-2">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+            <span>{dbErr}</span>
+          </div>
+        )}
+
+        <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+          <p className="text-[11px] text-slate-500">
+            Click to test connection and initialize baseline collections on MongoDB Atlas.
+          </p>
+          <button
+            type="button"
+            onClick={handleReconnectDb}
+            disabled={reconnectingDb}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-xl text-xs font-semibold shadow transition flex items-center space-x-1.5 cursor-pointer shrink-0"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${reconnectingDb ? 'animate-spin' : ''}`} />
+            <span>{reconnectingDb ? 'Connecting...' : 'Test & Connect to MongoDB Atlas'}</span>
+          </button>
+        </div>
+      </div>
 
       {/* Card 1: Core Institutional Parameters */}
       <form onSubmit={handleSave} className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">

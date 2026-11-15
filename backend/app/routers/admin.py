@@ -28,6 +28,21 @@ async def trigger_reseed(current_user: dict = Depends(require_role(["admin"]))):
     await seed_database()
     return {"message": "Database baseline and official faculty/courses re-seeded successfully."}
 
+@router.post("/reconnect-db")
+async def admin_reconnect_db(current_user: dict = Depends(require_role(["admin"]))):
+    from app.database.mongodb import try_reconnect_to_real_mongo, db_wrapper
+    success = await try_reconnect_to_real_mongo()
+    if not success:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not connect to MongoDB Atlas cluster: {db_wrapper.connection_error}. Ensure 0.0.0.0/0 is added to MongoDB Atlas Network Access."
+        )
+    return {
+        "message": "Successfully connected to live MongoDB Atlas cluster!",
+        "database_name": settings.DATABASE_NAME,
+        "is_mock_database": db_wrapper.is_mock
+    }
+
 @router.post("/users/{user_id}/reset-password")
 async def admin_reset_password(
     user_id: str,
