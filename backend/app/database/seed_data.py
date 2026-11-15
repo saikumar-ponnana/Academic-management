@@ -333,4 +333,97 @@ async def seed_database():
             upsert=True
         )
 
-    logger.info("Production baseline initialized: Settings, Faculty, Courses, Timetable, and Student verified.")
+    # 8. Baseline Study Materials: Dr. P. Muralidhar Rao's ML Lab Manual
+    existing_ml_mat = await db.study_materials.find_one({"course_code": "CYB103"})
+    if not existing_ml_mat:
+        from app.services.storage_service import ALLOWED_EXTENSIONS
+        import zipfile
+        import io
+
+        def create_ml_lab_docx_bytes():
+            content_types = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>"""
+            rels = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>"""
+            doc_xml = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="1E3A8A"/></w:rPr><w:t>GAYATRI VIDYA PARISHAD</w:t></w:r></w:p>
+    <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:sz w:val="24"/><w:color w:val="4B5563"/></w:rPr><w:t>INSTITUTE OF HIGHER LEARNING AND RESEARCH</w:t></w:r></w:p>
+    <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:sz w:val="20"/><w:color w:val="6B7280"/></w:rPr><w:t>ELC Center - Department of CSE (Cyber Security) - M.Tech Program</w:t></w:r></w:p>
+    <w:p><w:r><w:t></w:t></w:r></w:p>
+    <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="28"/><w:color w:val="2563EB"/></w:rPr><w:t>Machine Learning Applications for Cyber Security</w:t></w:r></w:p>
+    <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="24"/><w:color w:val="374151"/></w:rPr><w:t>LAB MANUAL &amp; PRACTICAL EXPERIMENTS (CYB103 / CYB107L)</w:t></w:r></w:p>
+    <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:i/><w:sz w:val="22"/><w:color w:val="6B7280"/></w:rPr><w:t>Course Instructor: Dr. P. Muralidhar Rao, Professor</w:t></w:r></w:p>
+    <w:p><w:r><w:t>---------------------------------------------------------------------------------------------------------</w:t></w:r></w:p>
+    <w:p><w:r><w:rPr><w:b/><w:sz w:val="24"/><w:color w:val="1E40AF"/></w:rPr><w:t>EXPERIMENT 1: Network Intrusion Detection with Tree Classifiers</w:t></w:r></w:p>
+    <w:p><w:r><w:rPr><w:sz w:val="22"/></w:rPr><w:t>Objective: Implement and evaluate Decision Trees and Random Forests on the NSL-KDD benchmark intrusion dataset. Preprocess continuous and categorical features, execute one-hot encoding, and compute precision, recall, and ROC-AUC metrics.</w:t></w:r></w:p>
+    <w:p><w:r><w:t></w:t></w:r></w:p>
+    <w:p><w:r><w:rPr><w:b/><w:sz w:val="24"/><w:color w:val="1E40AF"/></w:rPr><w:t>EXPERIMENT 2: Malicious Traffic Classification using Support Vector Machines</w:t></w:r></w:p>
+    <w:p><w:r><w:rPr><w:sz w:val="22"/></w:rPr><w:t>Objective: Train linear and radial basis function (RBF) kernel SVMs to classify anomalous packet sequences from standard HTTPS sessions. Evaluate decision boundary stability and hyperparameter tuning with C and gamma.</w:t></w:r></w:p>
+    <w:p><w:r><w:t></w:t></w:r></w:p>
+    <w:p><w:r><w:rPr><w:b/><w:sz w:val="24"/><w:color w:val="1E40AF"/></w:rPr><w:t>EXPERIMENT 3: Unsupervised Network Flow Anomaly Detection</w:t></w:r></w:p>
+    <w:p><w:r><w:rPr><w:sz w:val="22"/></w:rPr><w:t>Objective: Apply Isolation Forest and Local Outlier Factor (LOF) models to identify zero-day port scans and data exfiltration patterns without labeled training data.</w:t></w:r></w:p>
+    <w:p><w:r><w:t></w:t></w:r></w:p>
+    <w:p><w:r><w:rPr><w:b/><w:sz w:val="24"/><w:color w:val="1E40AF"/></w:rPr><w:t>EXPERIMENT 4: Deep Learning Autoencoders for Payload Inspection</w:t></w:r></w:p>
+    <w:p><w:r><w:rPr><w:sz w:val="22"/></w:rPr><w:t>Objective: Design and train a multilayer autoencoder using PyTorch / TensorFlow to reconstruct normal application layer traffic. Detect adversarial payloads by flagging high reconstruction loss.</w:t></w:r></w:p>
+  </w:body>
+</w:document>"""
+            buf = io.BytesIO()
+            with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+                z.writestr("[Content_Types].xml", content_types)
+                z.writestr("_rels/.rels", rels)
+                z.writestr("word/document.xml", doc_xml)
+            return buf.getvalue()
+
+        docx_content = create_ml_lab_docx_bytes()
+        filename = "Machine Learning Cyber Security Lab Manual.docx"
+        
+        # Save to GridFS
+        gridfs_id = None
+        try:
+            from motor.motor_asyncio import AsyncIOMotorGridFSBucket
+            fs = AsyncIOMotorGridFSBucket(db)
+            grid_in = fs.open_upload_stream(
+                filename,
+                metadata={"contentType": ALLOWED_EXTENSIONS[".docx"]}
+            )
+            await grid_in.write(docx_content)
+            await grid_in.close()
+            gridfs_id = str(grid_in._id)
+            logger.info(f"Seeded ML Lab Manual into MongoDB GridFS with id {gridfs_id}")
+        except Exception as e:
+            logger.warning(f"Could not seed docx to GridFS: {e}")
+
+        muralidhar_uid = fac_map.get("Dr. P. Muralidhar Rao", "user-fac-cyber-003")
+        await db.study_materials.insert_one({
+            "_id": "MAT-CYB103-ML-LAB",
+            "title": "Machine Learning Cyber Security Lab Manual",
+            "description": "Comprehensive practical laboratory manual covering intrusion detection, anomaly detection, SVM traffic classification, and autoencoders.",
+            "faculty_user_id": muralidhar_uid,
+            "faculty_name": "Dr. P. Muralidhar Rao",
+            "course_id": "CRS-CYB103",
+            "course_code": "CYB103",
+            "course_name": "ML Applications for Cyber Security",
+            "department_code": "CYBER",
+            "semester": 1,
+            "category": "Lab Manual",
+            "visibility": "COURSE_RESTRICTED",
+            "original_filename": filename,
+            "stored_filename": "Machine_Learning_Cyber_Security_Lab_Manual.docx",
+            "file_path": "",
+            "gridfs_id": gridfs_id,
+            "file_type": "docx",
+            "mime_type": ALLOWED_EXTENSIONS[".docx"],
+            "file_size": len(docx_content),
+            "uploaded_at": datetime.utcnow().isoformat()
+        })
+        logger.info("Seeded official ML Lab Manual for Dr. P. Muralidhar Rao into study_materials.")
+
+    logger.info("Production baseline initialized: Settings, Faculty, Courses, Timetable, Student, and Materials verified.")

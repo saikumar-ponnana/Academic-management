@@ -41,8 +41,8 @@ async def upload_study_material(
                 detail="You can only upload course-restricted materials for courses assigned to you."
             )
             
-    # Save file securely
-    file_info = await save_uploaded_material(file, max_size_mb=max_mb)
+    # Save file securely (both local disk cache and permanent MongoDB GridFS)
+    file_info = await save_uploaded_material(file, max_size_mb=max_mb, db=db)
     
     material_id = f"MAT-{uuid.uuid4().hex[:10].upper()}"
     faculty_profile = await db.faculty_profiles.find_one({"user_id": current_user["_id"]})
@@ -64,6 +64,7 @@ async def upload_study_material(
         "original_filename": file_info["original_name"],
         "stored_filename": file_info["stored_name"],
         "file_path": file_info["file_path"],
+        "gridfs_id": file_info.get("gridfs_id"),
         "file_type": file_info["file_type"],
         "mime_type": file_info["mime_type"],
         "file_size": file_info["file_size"],
@@ -166,7 +167,7 @@ async def download_study_material(id: str, current_user: dict = Depends(get_curr
         raise HTTPException(status_code=404, detail="Study material not found.")
         
     await verify_material_access(mat, current_user, db)
-    return serve_material_file(mat["file_path"], mat["original_filename"], inline=False)
+    return await serve_material_file(mat, mat["original_filename"], inline=False, db=db)
 
 @router.get("/{id}/preview")
 async def preview_study_material(id: str, current_user: dict = Depends(get_current_user)):
@@ -176,7 +177,7 @@ async def preview_study_material(id: str, current_user: dict = Depends(get_curre
         raise HTTPException(status_code=404, detail="Study material not found.")
         
     await verify_material_access(mat, current_user, db)
-    return serve_material_file(mat["file_path"], mat["original_filename"], inline=True)
+    return await serve_material_file(mat, mat["original_filename"], inline=True, db=db)
 
 @router.delete("/{id}")
 async def delete_study_material(id: str, current_user: dict = Depends(require_role(["faculty", "admin"]))):
@@ -193,6 +194,16 @@ async def delete_study_material(id: str, current_user: dict = Depends(require_ro
     if os.path.exists(mat.get("file_path", "")):
         try:
             os.remove(mat["file_path"])
+        except Exception:
+            pass
+
+    # Delete from MongoDB GridFS
+    if mat.get("gridfs_id"):
+        try:
+            from bson import ObjectId
+            from motor.motor_asyncio import AsyncIOMotorGridFSBucket
+            fs = AsyncIOMotorGridFSBucket(db)
+            await fs.delete(ObjectId(mat["gridfs_id"]))
         except Exception:
             pass
             
