@@ -256,4 +256,73 @@ async def seed_database():
                 "status": "active"
             })
 
-    logger.info("Production baseline initialized: Settings, Faculty, Courses, and Timetable verified.")
+    # 7. Official Student Account (M.Tech Cyber Security)
+    student_email = "saikumar.mtech.gvp@gmail.com"
+    student_user_id = "user-stu-cyber-001"
+    await db.users.update_one(
+        {"email": student_email},
+        {
+            "$setOnInsert": {
+                "_id": student_user_id,
+                "created_at": datetime.utcnow().isoformat()
+            },
+            "$set": {
+                "email": student_email,
+                "password_hash": get_password_hash("Arjun@515"),
+                "role": "student",
+                "full_name": "Saikumar Ponnana",
+                "is_active": True,
+            }
+        },
+        upsert=True
+    )
+    stu_user = await db.users.find_one({"email": student_email})
+    actual_stu_id = stu_user["_id"] if stu_user else student_user_id
+
+    await db.student_profiles.update_one(
+        {"user_id": actual_stu_id},
+        {
+            "$setOnInsert": {
+                "_id": f"prof-{actual_stu_id}",
+                "user_id": actual_stu_id,
+                "created_at": datetime.utcnow().isoformat()
+            },
+            "$set": {
+                "user_id": actual_stu_id,
+                "student_id": "STU-CYBER-001",
+                "roll_number": "26GVPCYB001",
+                "full_name": "Saikumar Ponnana",
+                "email": student_email,
+                "department_code": "CYBER",
+                "academic_year": "2026-27",
+                "semester": 1,
+                "section": "1",
+            }
+        },
+        upsert=True
+    )
+
+    # Auto-enroll student into active courses
+    matching_courses = await db.courses.find({"department_code": "CYBER", "semester": 1}).to_list(50)
+    for c in matching_courses:
+        await db.enrollments.update_one(
+            {"student_user_id": actual_stu_id, "course_id": c["_id"]},
+            {
+                "$set": {
+                    "student_user_id": actual_stu_id,
+                    "student_name": "Saikumar Ponnana",
+                    "roll_number": "26GVPCYB001",
+                    "course_id": c["_id"],
+                    "course_code": c.get("code"),
+                    "department_code": "CYBER",
+                    "semester": 1,
+                    "section": "1",
+                    "academic_year": "2026-27",
+                    "status": "enrolled",
+                    "enrolled_at": datetime.utcnow().isoformat()
+                }
+            },
+            upsert=True
+        )
+
+    logger.info("Production baseline initialized: Settings, Faculty, Courses, Timetable, and Student verified.")

@@ -15,13 +15,31 @@ from datetime import datetime, timedelta
 from typing import Optional, List
 import uuid
 
+from pydantic import BaseModel
+
 router = APIRouter(prefix="/admin", tags=["Administrator Management"])
+
+class AdminResetPasswordPayload(BaseModel):
+    new_password: str
 
 @router.post("/reseed")
 async def trigger_reseed(current_user: dict = Depends(require_role(["admin"]))):
     from app.database.seed_data import seed_database
     await seed_database()
     return {"message": "Database baseline and official faculty/courses re-seeded successfully."}
+
+@router.post("/users/{user_id}/reset-password")
+async def admin_reset_password(
+    user_id: str,
+    payload: AdminResetPasswordPayload,
+    current_user: dict = Depends(require_role(["admin"]))
+):
+    db = get_database()
+    pwd_hash = get_password_hash(payload.new_password)
+    res = await db.users.update_one({"_id": user_id}, {"$set": {"password_hash": pwd_hash}})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "Password updated successfully."}
 
 @router.get("/dashboard")
 async def get_admin_dashboard(current_user: dict = Depends(require_role(["admin"]))):
