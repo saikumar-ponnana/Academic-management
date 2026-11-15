@@ -334,8 +334,8 @@ async def seed_database():
         )
 
     # 8. Baseline Study Materials: Dr. P. Muralidhar Rao's ML Lab Manual
-    existing_ml_mat = await db.study_materials.find_one({"course_code": "CYB103"})
-    if not existing_ml_mat:
+    existing_ml_mat = await db.study_materials.find_one({"_id": "MAT-CYB103-ML-LAB"})
+    if not existing_ml_mat or not existing_ml_mat.get("gridfs_id"):
         from app.services.storage_service import ALLOWED_EXTENSIONS
         import zipfile
         import io
@@ -390,40 +390,45 @@ async def seed_database():
         try:
             from motor.motor_asyncio import AsyncIOMotorGridFSBucket
             fs = AsyncIOMotorGridFSBucket(db)
-            grid_in = fs.open_upload_stream(
+            uploaded_id = await fs.upload_from_stream(
                 filename,
+                docx_content,
                 metadata={"contentType": ALLOWED_EXTENSIONS[".docx"]}
             )
-            await grid_in.write(docx_content)
-            await grid_in.close()
-            gridfs_id = str(grid_in._id)
+            gridfs_id = str(uploaded_id)
             logger.info(f"Seeded ML Lab Manual into MongoDB GridFS with id {gridfs_id}")
         except Exception as e:
             logger.warning(f"Could not seed docx to GridFS: {e}")
 
         muralidhar_uid = fac_map.get("Dr. P. Muralidhar Rao", "user-fac-cyber-003")
-        await db.study_materials.insert_one({
-            "_id": "MAT-CYB103-ML-LAB",
-            "title": "Machine Learning Cyber Security Lab Manual",
-            "description": "Comprehensive practical laboratory manual covering intrusion detection, anomaly detection, SVM traffic classification, and autoencoders.",
-            "faculty_user_id": muralidhar_uid,
-            "faculty_name": "Dr. P. Muralidhar Rao",
-            "course_id": "CRS-CYB103",
-            "course_code": "CYB103",
-            "course_name": "ML Applications for Cyber Security",
-            "department_code": "CYBER",
-            "semester": 1,
-            "category": "Lab Manual",
-            "visibility": "COURSE_RESTRICTED",
-            "original_filename": filename,
-            "stored_filename": "Machine_Learning_Cyber_Security_Lab_Manual.docx",
-            "file_path": "",
-            "gridfs_id": gridfs_id,
-            "file_type": "docx",
-            "mime_type": ALLOWED_EXTENSIONS[".docx"],
-            "file_size": len(docx_content),
-            "uploaded_at": datetime.utcnow().isoformat()
-        })
-        logger.info("Seeded official ML Lab Manual for Dr. P. Muralidhar Rao into study_materials.")
+        await db.study_materials.update_one(
+            {"_id": "MAT-CYB103-ML-LAB"},
+            {
+                "$set": {
+                    "_id": "MAT-CYB103-ML-LAB",
+                    "title": "Machine Learning Cyber Security Lab Manual",
+                    "description": "Comprehensive practical laboratory manual covering intrusion detection, anomaly detection, SVM traffic classification, and autoencoders.",
+                    "faculty_user_id": muralidhar_uid,
+                    "faculty_name": "Dr. P. Muralidhar Rao",
+                    "course_id": "CRS-CYB103",
+                    "course_code": "CYB103",
+                    "course_name": "ML Applications for Cyber Security",
+                    "department_code": "CYBER",
+                    "semester": 1,
+                    "category": "Lab Manual",
+                    "visibility": "COURSE_RESTRICTED",
+                    "original_filename": filename,
+                    "stored_filename": "Machine_Learning_Cyber_Security_Lab_Manual.docx",
+                    "file_path": "",
+                    "gridfs_id": gridfs_id,
+                    "file_type": "docx",
+                    "mime_type": ALLOWED_EXTENSIONS[".docx"],
+                    "file_size": len(docx_content),
+                    "uploaded_at": datetime.utcnow().isoformat()
+                }
+            },
+            upsert=True
+        )
+        logger.info("Seeded official ML Lab Manual for Dr. P. Muralidhar Rao into study_materials with persistent GridFS.")
 
     logger.info("Production baseline initialized: Settings, Faculty, Courses, Timetable, Student, and Materials verified.")

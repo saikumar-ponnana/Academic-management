@@ -2,8 +2,8 @@ import os
 import uuid
 import logging
 from bson import ObjectId
-from fastapi import UploadFile, HTTPException, status
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi import UploadFile, HTTPException, status, Response
+from fastapi.responses import FileResponse
 from typing import Dict, Any, Optional
 from app.core.config import settings
 
@@ -66,16 +66,15 @@ async def save_uploaded_material(file: UploadFile, max_size_mb: int = 10, db = N
         try:
             from motor.motor_asyncio import AsyncIOMotorGridFSBucket
             fs = AsyncIOMotorGridFSBucket(db)
-            grid_in = fs.open_upload_stream(
+            uploaded_id = await fs.upload_from_stream(
                 filename,
+                content,
                 metadata={
                     "contentType": ALLOWED_EXTENSIONS[ext],
                     "unique_name": unique_name
                 }
             )
-            await grid_in.write(content)
-            await grid_in.close()
-            gridfs_id = str(grid_in._id)
+            gridfs_id = str(uploaded_id)
             logger.info(f"Persisted file {filename} in MongoDB GridFS with id {gridfs_id}")
         except Exception as e:
             logger.error(f"Failed to persist file in GridFS: {e}")
@@ -104,30 +103,20 @@ async def serve_material_file(material: Any, original_name: str, inline: bool = 
     media_type = ALLOWED_EXTENSIONS.get(ext, "application/octet-stream")
     disposition = "inline" if inline else "attachment"
 
-    # 1. Stream from MongoDB GridFS if available (permanent across Render restarts)
+    # 1. Read from MongoDB GridFS if available (permanent cloud storage)
     if db is not None and gridfs_id:
         try:
             from motor.motor_asyncio import AsyncIOMotorGridFSBucket
             fs = AsyncIOMotorGridFSBucket(db)
             grid_out = await fs.open_download_stream(ObjectId(gridfs_id))
-            
-            async def stream_chunks():
-                while True:
-                    chunk = await grid_out.readchunk()
-                    if not chunk:
-                        break
-                    yield chunk
-
-            return StreamingResponse(
-                stream_chunks(),
+            file_bytes = await grid_out.read()
+            return Response(
+                content=file_bytes,
                 media_type=media_type,
-                headers={
-                    "Content-Disposition": f'{disposition}; filename="{original_name}"',
-                    "Content-Length": str(grid_out.length)
-                }
+                headers={"Content-Disposition": f'{disposition}; filename="{original_name}"'}
             )
         except Exception as e:
-            logger.warning(f"Could not stream from GridFS ({gridfs_id}): {e}, attempting disk fallback")
+            logger.warning(f"Could not read from GridFS ({gridfs_id}): {e}, attempting disk fallback")
 
     # 2. Fallback to local disk if present
     if file_path and os.path.exists(file_path):
