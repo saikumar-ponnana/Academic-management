@@ -17,7 +17,9 @@ async def connect_to_mongo():
     try:
         real_client = AsyncIOMotorClient(
             settings.MONGODB_URL,
-            serverSelectionTimeoutMS=8000
+            serverSelectionTimeoutMS=10000,
+            tls=True,
+            tlsAllowInvalidCertificates=True
         )
         # Verify connection
         await real_client.admin.command('ping')

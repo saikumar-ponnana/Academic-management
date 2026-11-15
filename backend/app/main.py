@@ -81,5 +81,18 @@ async def root():
 
 @app.get("/api/health")
 async def health_check():
-    return {"status": "healthy", "service": "elc_academic_backend"}
+    from app.database.mongodb import db_wrapper
+    masked_url = ""
+    if settings.MONGODB_URL:
+        if "@" in settings.MONGODB_URL:
+            masked_url = "mongodb+srv://***@" + settings.MONGODB_URL.split("@")[-1]
+        else:
+            masked_url = settings.MONGODB_URL[:20]
+    return {
+        "status": "healthy",
+        "service": "elc_academic_backend",
+        "is_mock_database": db_wrapper.is_mock,
+        "database_name": settings.DATABASE_NAME,
+        "mongodb_host": masked_url
+    }
 

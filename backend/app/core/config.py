@@ -23,7 +23,10 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE_MB: int = int(os.getenv("MAX_UPLOAD_SIZE_MB", 10))
     
     # Database
-    MONGODB_URL: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+    MONGODB_URL: str = os.getenv(
+        "MONGODB_URL",
+        "mongodb+srv://saikumar:Saikumar515@cluster0.vayizaa.mongodb.net/student_center_db?retryWrites=true&w=majority"
+    )
     DATABASE_NAME: str = os.getenv("DATABASE_NAME", "student_center_db")
     
     # Storage
