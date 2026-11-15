@@ -57,17 +57,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include Routers
-app.include_router(auth.router, prefix=settings.API_V1_STR)
-app.include_router(faculty.router, prefix=settings.API_V1_STR)
-app.include_router(students.router, prefix=settings.API_V1_STR)
-app.include_router(courses.router, prefix=settings.API_V1_STR)
-app.include_router(timetable.router, prefix=settings.API_V1_STR)
-app.include_router(attendance.router, prefix=settings.API_V1_STR)
-app.include_router(materials.router, prefix=settings.API_V1_STR)
-app.include_router(admin.router, prefix=settings.API_V1_STR)
-app.include_router(inst_settings.router, prefix=settings.API_V1_STR)
-app.include_router(departments.router, prefix=settings.API_V1_STR)
+# Include Routers (Support both /api prefix and direct root paths)
+for pfx in [settings.API_V1_STR, ""]:
+    app.include_router(auth.router, prefix=pfx)
+    app.include_router(faculty.router, prefix=pfx)
+    app.include_router(students.router, prefix=pfx)
+    app.include_router(courses.router, prefix=pfx)
+    app.include_router(timetable.router, prefix=pfx)
+    app.include_router(attendance.router, prefix=pfx)
+    app.include_router(materials.router, prefix=pfx)
+    app.include_router(admin.router, prefix=pfx)
+    app.include_router(inst_settings.router, prefix=pfx)
+    app.include_router(departments.router, prefix=pfx)
 
 @app.get("/")
 async def root():
