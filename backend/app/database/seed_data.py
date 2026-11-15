@@ -292,7 +292,6 @@ async def seed_database():
         {
             "$setOnInsert": {
                 "_id": f"prof-{actual_stu_id}",
-                "user_id": actual_stu_id,
                 "created_at": datetime.utcnow().isoformat()
             },
             "$set": {
