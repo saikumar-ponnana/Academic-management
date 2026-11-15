@@ -24,7 +24,8 @@ const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [facultySuccess, setFacultySuccess] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [submittedRole, setSubmittedRole] = useState('student');
   const [departments, setDepartments] = useState([
     { code: 'CYBER', name: 'CSE (Cyber Security)' }
   ]);
@@ -96,23 +97,9 @@ const RegisterPage = () => {
             })
       };
 
-      const res = await api.post('/auth/register', payload);
-      const { access_token, user: userData } = res.data;
-
-      if (role === 'faculty') {
-        setFacultySuccess(true);
-        return;
-      }
-
-      localStorage.setItem('elc_token', access_token);
-      localStorage.setItem('elc_user', JSON.stringify(userData));
-      setUser(userData);
-
-      if (userData.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/student/dashboard');
-      }
+      await api.post('/auth/register', payload);
+      setSubmittedRole(role);
+      setRegistrationSuccess(true);
     } catch (err) {
       let detail = err.response?.data?.detail;
       if (Array.isArray(detail)) {
@@ -133,7 +120,7 @@ const RegisterPage = () => {
 
       {/* Main Registration Card */}
       <div className="flex-1 flex items-center justify-center p-4 py-8">
-        {facultySuccess ? (
+        {registrationSuccess ? (
           <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-200 border-t-4 border-t-amber-500 w-full max-w-lg p-8 text-center space-y-5">
             <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 mx-auto flex items-center justify-center border border-amber-200 shadow-sm">
               <Clock className="w-8 h-8" />
@@ -142,23 +129,25 @@ const RegisterPage = () => {
               <span className="block text-[11px] font-bold text-[#0e387a] uppercase tracking-wider mb-1">
                 Gayatri Vidya Parishad • ELC Center
               </span>
-              <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Faculty Registration Submitted</h2>
+              <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
+                {submittedRole === 'faculty' ? 'Faculty' : 'Student'} Registration Submitted
+              </h2>
               <p className="text-xs text-slate-500 mt-1 font-medium">
-                Application Received for CSE (Cyber Security)
+                Application Received for CSE (Cyber Security) • M.Tech Program
               </p>
             </div>
 
             <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-xl text-left space-y-2 text-xs text-amber-950">
               <p className="font-bold flex items-center space-x-1.5 text-amber-900">
                 <AlertCircle className="w-4 h-4 text-amber-600" />
-                <span>Pending Administrator Verification</span>
+                <span>Pending Institutional Administrator Approval</span>
               </p>
               <p className="text-slate-600 leading-relaxed">
-                Your faculty account has been registered. For institutional security, faculty logins require approval by the Department Administrator.
+                Your <strong>{submittedRole === 'faculty' ? 'Faculty' : 'Student'}</strong> registration has been securely submitted. To maintain academic integrity and prevent unauthorized activity, all registrations must be reviewed and approved by the Gayatri Vidya Parishad Administrator before account access is activated.
               </p>
               <ul className="list-disc pl-5 space-y-1 text-slate-600 pt-1">
-                <li>Your request is now listed in the Admin Verification queue.</li>
-                <li>Once the Admin approves your profile, you will be able to log in with your email and password immediately.</li>
+                <li>Your profile is currently queued in the Administrator Approval panel.</li>
+                <li>Once the Administrator verifies and clicks <strong>Approve</strong>, your login will be immediately enabled.</li>
               </ul>
             </div>
 
@@ -167,7 +156,7 @@ const RegisterPage = () => {
                 to="/login"
                 className="inline-flex items-center justify-center w-full py-3 bg-[#0e387a] hover:bg-[#08224d] text-white font-bold rounded-xl text-sm shadow-md shadow-[#0e387a]/20 transition"
               >
-                Return to Login Page
+                Return to Academic Portal Login
               </Link>
             </div>
           </div>

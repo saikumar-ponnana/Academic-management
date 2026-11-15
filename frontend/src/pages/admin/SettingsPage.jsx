@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
-import { Settings, Save, CheckCircle2, Clock, Globe, Building2, Plus, Trash2 } from 'lucide-react';
+import { Settings, Save, CheckCircle2, Clock, Globe, Building2, Plus, Trash2, Lock, Eye, EyeOff, ShieldCheck, KeyRound, AlertCircle } from 'lucide-react';
 
 const SettingsPage = () => {
   const [settings, setSettings] = useState({
@@ -16,6 +16,19 @@ const SettingsPage = () => {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [deptMsg, setDeptMsg] = useState('');
+
+  // Admin Change Password State
+  const [passwordData, setPasswordData] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
+  });
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState('');
+  const [passwordErr, setPasswordErr] = useState('');
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -73,6 +86,40 @@ const SettingsPage = () => {
       setDepartments((prev) => prev.filter((d) => d._id !== deptId));
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to delete department.');
+    }
+  };
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+    setPasswordMsg('');
+    setPasswordErr('');
+
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      setPasswordErr('New password and confirm password do not match.');
+      return;
+    }
+    if (passwordData.new_password.length < 6) {
+      setPasswordErr('New password must be at least 6 characters long.');
+      return;
+    }
+
+    setSavingPassword(true);
+    try {
+      const res = await api.post('/auth/change-password', {
+        current_password: passwordData.current_password,
+        new_password: passwordData.new_password
+      });
+      setPasswordMsg(res.data.message || 'Administrator password updated successfully! Please use your new password on your next login.');
+      setPasswordData({ current_password: '', new_password: '', confirm_password: '' });
+    } catch (err) {
+      setPasswordErr(err.response?.data?.detail || 'Failed to update administrator password. Please check your current password.');
+    } finally {
+      setSavingPassword(false);
     }
   };
 
@@ -256,6 +303,123 @@ const SettingsPage = () => {
             <Plus className="w-3.5 h-3.5" />
             <span>Add Branch</span>
           </button>
+        </form>
+      </div>
+
+      {/* 3. Change Administrator Password & Account Security */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
+        <div>
+          <h3 className="text-sm font-bold text-slate-800 flex items-center space-x-2">
+            <ShieldCheck className="w-4 h-4 text-purple-600" />
+            <span>Administrator Password & Account Security</span>
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Update your administrative login credentials to prevent unauthorized access using predictable default passwords.
+          </p>
+        </div>
+
+        {passwordMsg && (
+          <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs flex items-center space-x-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{passwordMsg}</span>
+          </div>
+        )}
+
+        {passwordErr && (
+          <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs flex items-center space-x-2">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <span>{passwordErr}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleUpdatePassword} className="space-y-4 pt-2">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              Current Administrator Password *
+            </label>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type={showCurrent ? 'text' : 'password'}
+                required
+                name="current_password"
+                placeholder="Enter current password (e.g. Admin@123)"
+                value={passwordData.current_password}
+                onChange={handlePasswordChange}
+                className="w-full pl-9 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-600 focus:bg-white"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrent(!showCurrent)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                New Password *
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type={showNew ? 'text' : 'password'}
+                  required
+                  name="new_password"
+                  placeholder="At least 6 characters"
+                  value={passwordData.new_password}
+                  onChange={handlePasswordChange}
+                  className="w-full pl-9 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-600 focus:bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNew(!showNew)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                Confirm New Password *
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type={showConfirm ? 'text' : 'password'}
+                  required
+                  name="confirm_password"
+                  placeholder="Repeat new password"
+                  value={passwordData.confirm_password}
+                  onChange={handlePasswordChange}
+                  className="w-full pl-9 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-600 focus:bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={savingPassword}
+              className="px-6 py-2.5 bg-purple-700 hover:bg-purple-800 disabled:bg-slate-400 text-white font-bold rounded-xl text-sm shadow-md shadow-purple-700/20 transition flex items-center space-x-2 cursor-pointer"
+            >
+              <KeyRound className="w-4 h-4" />
+              <span>{savingPassword ? 'Updating Password...' : 'Update Admin Password'}</span>
+            </button>
+          </div>
         </form>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
-import { GraduationCap, Plus, Search, Filter, CheckCircle2, Trash2 } from 'lucide-react';
+import { GraduationCap, Plus, Search, Filter, CheckCircle2, Trash2, Check, X, Clock, AlertCircle } from 'lucide-react';
 
 const StudentManagement = () => {
   const [students, setStudents] = useState([]);
@@ -10,6 +10,7 @@ const StudentManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
   const [secFilter, setSecFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [msg, setMsg] = useState('');
 
   // New student form
@@ -89,6 +90,21 @@ const StudentManagement = () => {
     }
   };
 
+  const handleApproveStudent = async (userId, name, approved) => {
+    try {
+      await api.post(`/admin/students/${userId}/approve`, {
+        approved,
+        comments: approved ? 'Approved by Administrator' : 'Declined by Administrator'
+      });
+      setMsg(`Student registration for ${name} ${approved ? 'approved successfully! Account is now active.' : 'declined.'}`);
+      fetchInitial();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to update student status.');
+    }
+  };
+
+  const pendingCount = students.filter(s => s.profile_status === 'pending' || s.is_active === false).length;
+
   const filteredStudents = students.filter((s) => {
     const matchSearch =
       s.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -96,7 +112,13 @@ const StudentManagement = () => {
       s.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchDept = !deptFilter || s.department_code === deptFilter;
     const matchSec = !secFilter || s.section === secFilter;
-    return matchSearch && matchDept && matchSec;
+    const matchStatus =
+      statusFilter === 'all'
+        ? true
+        : statusFilter === 'pending'
+        ? (s.profile_status === 'pending' || s.is_active === false)
+        : (s.profile_status === 'approved' && s.is_active !== false);
+    return matchSearch && matchDept && matchSec && matchStatus;
   });
 
   return (
@@ -124,6 +146,49 @@ const StudentManagement = () => {
           <span>{msg}</span>
         </div>
       )}
+
+      {/* Status Filter Tabs */}
+      <div className="flex items-center space-x-2 border-b border-slate-200 pb-3">
+        <button
+          type="button"
+          onClick={() => setStatusFilter('all')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+            statusFilter === 'all'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          All Students ({students.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatusFilter('active')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+            statusFilter === 'active'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          Active Enrolled ({students.filter(s => s.profile_status === 'approved' && s.is_active !== false).length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatusFilter('pending')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
+            statusFilter === 'pending'
+              ? 'bg-amber-600 text-white shadow-xs'
+              : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
+          }`}
+        >
+          <Clock className="w-3.5 h-3.5" />
+          <span>Pending Approvals</span>
+          {pendingCount > 0 && (
+            <span className="ml-1 px-1.5 py-0.2 bg-red-500 text-white rounded-full text-[10px] font-black">
+              {pendingCount}
+            </span>
+          )}
+        </button>
+      </div>
 
       {/* Filters Bar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -175,36 +240,71 @@ const StudentManagement = () => {
                 <th className="py-3 px-4">Semester</th>
                 <th className="py-3 px-4">Section</th>
                 <th className="py-3 px-4">Email</th>
+                <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400 italic">
-                    No students found. Click "Add New Student" above to add your 10 members.
+                  <td colSpan={8} className="py-8 text-center text-slate-400 italic">
+                    No students found matching current filters.
                   </td>
                 </tr>
               ) : (
-                filteredStudents.map((s) => (
-                  <tr key={s.user_id} className="hover:bg-slate-50 transition">
-                    <td className="py-3 px-4 font-mono font-bold text-blue-700">{s.roll_number}</td>
-                    <td className="py-3 px-4 font-semibold text-slate-800">{s.full_name}</td>
-                    <td className="py-3 px-4 font-bold text-slate-700">{s.department_code}</td>
-                    <td className="py-3 px-4 text-slate-600">Sem {s.semester}</td>
-                    <td className="py-3 px-4 text-slate-600">Sec {s.section}</td>
-                    <td className="py-3 px-4 text-slate-500 font-mono">{s.email}</td>
-                    <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => handleDeleteStudent(s.user_id, s.full_name, s.roll_number)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"
-                        title="Delete Student"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                filteredStudents.map((s) => {
+                  const isPending = s.profile_status === 'pending' || s.is_active === false;
+                  return (
+                    <tr key={s.user_id} className="hover:bg-slate-50 transition">
+                      <td className="py-3 px-4 font-mono font-bold text-blue-700">{s.roll_number}</td>
+                      <td className="py-3 px-4 font-semibold text-slate-800">{s.full_name}</td>
+                      <td className="py-3 px-4 font-bold text-slate-700">{s.department_code}</td>
+                      <td className="py-3 px-4 text-slate-600">Sem {s.semester}</td>
+                      <td className="py-3 px-4 text-slate-600">Sec {s.section}</td>
+                      <td className="py-3 px-4 text-slate-500 font-mono">{s.email}</td>
+                      <td className="py-3 px-4">
+                        {isPending ? (
+                          <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                            <Clock className="w-3 h-3" />
+                            <span>Pending Approval</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>Active Enrolled</span>
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right space-x-1">
+                        {isPending && (
+                          <>
+                            <button
+                              onClick={() => handleApproveStudent(s.user_id, s.full_name, true)}
+                              className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded transition"
+                              title="Approve Student Registration"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleApproveStudent(s.user_id, s.full_name, false)}
+                              className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition"
+                              title="Decline Registration"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => handleDeleteStudent(s.user_id, s.full_name, s.roll_number)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"
+                          title="Delete Student Record"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

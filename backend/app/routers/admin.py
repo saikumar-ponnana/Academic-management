@@ -248,7 +248,78 @@ async def list_students(current_user: dict = Depends(require_role(["admin"]))):
     students = await db.student_profiles.find({}).sort("roll_number", 1).to_list(1000)
     for s in students:
         s["_id"] = str(s["_id"])
+        u = await db.users.find_one({"_id": s.get("user_id")})
+        if u:
+            s["is_active"] = u.get("is_active", True)
+            if "profile_status" not in s or not s["profile_status"]:
+                s["profile_status"] = "approved" if u.get("is_active", True) else "pending"
+        else:
+            s["is_active"] = False
+            s["profile_status"] = "pending"
     return students
+
+@router.post("/students/{student_user_id}/approve")
+async def approve_student(
+    student_user_id: str,
+    payload: FacultyProfileApproval,
+    current_user: dict = Depends(require_role(["admin"]))
+):
+    db = get_database()
+    student = await db.student_profiles.find_one({"user_id": student_user_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found.")
+
+    new_status = "approved" if payload.approved else "rejected"
+    is_active = payload.approved
+
+    await db.student_profiles.update_one(
+        {"user_id": student_user_id},
+        {"$set": {"profile_status": new_status, "status": new_status}}
+    )
+
+    await db.users.update_one(
+        {"_id": student_user_id},
+        {"$set": {"is_active": is_active}}
+    )
+
+    now_iso = datetime.utcnow().isoformat()
+
+    # If approved, auto-enroll into courses for their branch and semester
+    if payload.approved:
+        matching_courses = await db.courses.find({
+            "department_code": student.get("department_code", "CYBER"),
+            "semester": student.get("semester", 1)
+        }).to_list(50)
+
+        for c in matching_courses:
+            await db.enrollments.update_one(
+                {"student_user_id": student_user_id, "course_id": c["_id"]},
+                {"$setOnInsert": {
+                    "_id": f"ENR-{uuid.uuid4().hex[:8].upper()}",
+                    "student_user_id": student_user_id,
+                    "student_name": student.get("full_name"),
+                    "roll_number": student.get("roll_number"),
+                    "course_id": c["_id"],
+                    "course_code": c.get("code"),
+                    "department_code": student.get("department_code", "CYBER"),
+                    "semester": student.get("semester", 1),
+                    "section": student.get("section", "1"),
+                    "academic_year": student.get("academic_year", "2026-27"),
+                    "status": "enrolled",
+                    "enrolled_at": now_iso
+                }},
+                upsert=True
+            )
+
+    await db.audit_logs.insert_one({
+        "action": "STUDENT_APPROVAL",
+        "status": new_status,
+        "student_user_id": student_user_id,
+        "admin_user_id": current_user["_id"],
+        "comments": payload.comments or "",
+        "created_at": now_iso
+    })
+    return {"message": f"Student registration {new_status} successfully."}
 
 @router.post("/students")
 async def create_student(

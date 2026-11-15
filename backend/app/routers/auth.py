@@ -43,7 +43,7 @@ async def register(req: UserRegisterRequest, response: Response):
         "password_hash": pwd_hash,
         "role": role,
         "full_name": req.full_name.strip(),
-        "is_active": True,
+        "is_active": True if role == "admin" else False,
         "created_at": now_iso
     }
     await db.users.insert_one(user_doc)
@@ -67,6 +67,7 @@ async def register(req: UserRegisterRequest, response: Response):
                 detail=f"Roll number {roll} is already registered."
             )
 
+        # Student Registration: Requires Administrator Approval
         student_doc = {
             "_id": f"prof-{user_id}",
             "user_id": user_id,
@@ -79,36 +80,25 @@ async def register(req: UserRegisterRequest, response: Response):
             "academic_year": req.academic_year or "2026-27",
             "semester": req.semester if req.semester is not None else 1,
             "section": (req.section or "1").strip().upper(),
+            "profile_status": "pending",
+            "status": "pending",
             "created_at": now_iso
         }
         await db.student_profiles.insert_one(student_doc)
-
-        # Auto-enroll in existing matching courses
-        matching_courses = await db.courses.find({
-            "department_code": student_doc["department_code"],
-            "semester": student_doc["semester"]
-        }).to_list(50)
-
-        for c in matching_courses:
-            await db.enrollments.insert_one({
-                "_id": f"ENR-{uuid.uuid4().hex[:8].upper()}",
-                "student_user_id": user_id,
-                "student_name": student_doc["full_name"],
-                "roll_number": roll,
-                "course_id": c["_id"],
-                "course_code": c.get("code"),
-                "department_code": student_doc["department_code"],
-                "semester": student_doc["semester"],
-                "section": student_doc["section"],
-                "academic_year": student_doc["academic_year"],
-                "status": "enrolled",
-                "enrolled_at": now_iso
-            })
+        await db.users.update_one({"_id": user_id}, {"$set": {"is_active": False}})
 
         user_data["roll_number"] = roll
         user_data["department_code"] = student_doc["department_code"]
         user_data["semester"] = student_doc["semester"]
         user_data["section"] = student_doc["section"]
+        user_data["profile_status"] = "pending"
+        user_data["is_active"] = False
+
+        return LoginResponse(
+            access_token="",
+            token_type="bearer",
+            user=user_data
+        )
 
     elif role == "faculty":
         fid = (req.faculty_id or f"FAC-{req.department_code or 'CYBER'}-{uuid.uuid4().hex[:4]}").strip().upper()
@@ -207,6 +197,19 @@ async def login(credentials: LoginRequest, response: Response):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Your faculty registration has been declined by the administrator."
+            )
+
+    if user.get("role") == "student":
+        stu = await db.student_profiles.find_one({"user_id": user["_id"]})
+        if stu and stu.get("profile_status") == "pending":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your student registration is currently pending Administrator approval. Once approved, you will be able to log in."
+            )
+        if stu and stu.get("profile_status") == "rejected":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your student registration has been declined by the administrator."
             )
 
     if not user.get("is_active", True):
