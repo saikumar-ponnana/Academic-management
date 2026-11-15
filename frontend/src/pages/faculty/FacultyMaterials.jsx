@@ -106,8 +106,8 @@ const FacultyMaterials = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this study material?')) return;
+  const handleDelete = async (id, title) => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${title || 'this study material'}"?`)) return;
     try {
       await api.delete(`/materials/${id}`);
       setMaterials((prev) => prev.filter((m) => m._id !== id));
@@ -303,11 +303,12 @@ const FacultyMaterials = () => {
 
                     <button
                       type="button"
-                      onClick={() => handleDelete(m._id)}
-                      className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition"
-                      title="Delete"
+                      onClick={() => handleDelete(m._id, m.title)}
+                      className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-medium flex items-center space-x-1 transition"
+                      title="Permanently Delete Study Material"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete</span>
                     </button>
                   </div>
                 </div>

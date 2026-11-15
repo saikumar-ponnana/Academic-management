@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { LogOut, User, Bell, Clock, Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import LogoutConfirmModal from './LogoutConfirmModal';
 
 const Navbar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [timeStr, setTimeStr] = useState('');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     const updateTime = () => {
@@ -18,7 +20,8 @@ const Navbar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleLogout = async () => {
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
     await logout();
     navigate('/login');
   };
@@ -90,14 +93,23 @@ const Navbar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
           </button>
 
           <button
-            onClick={handleLogout}
-            title="Logout"
-            className="p-1.5 sm:p-2 rounded-lg bg-slate-800 hover:bg-red-950/60 text-slate-300 hover:text-red-400 transition-colors border border-slate-700/60 shrink-0"
+            type="button"
+            onClick={() => setShowLogoutModal(true)}
+            title="Exit / Sign Out"
+            className="p-1.5 sm:p-2 rounded-lg bg-slate-800 hover:bg-red-950/60 text-slate-300 hover:text-red-400 transition-colors border border-slate-700/60 shrink-0 cursor-pointer flex items-center space-x-1"
           >
             <LogOut className="w-4 h-4" />
+            <span className="hidden xl:inline text-xs font-medium">Exit</span>
           </button>
         </div>
       </div>
+
+      {/* Confirmation Dialog on Exit */}
+      <LogoutConfirmModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={confirmLogout}
+      />
     </header>
   );
 };

@@ -188,9 +188,15 @@ async def delete_study_material(id: str, current_user: dict = Depends(require_ro
     if not mat:
         raise HTTPException(status_code=404, detail="Study material not found.")
         
-    # Faculty can only delete their own materials
-    if current_user["role"] == "faculty" and str(mat.get("faculty_user_id")) != str(current_user["_id"]):
-        raise HTTPException(status_code=403, detail="You can only delete your own uploaded study materials.")
+    # Faculty can delete their own materials or materials belonging to courses assigned to them
+    if current_user["role"] == "faculty":
+        is_uploader = str(mat.get("faculty_user_id")) == str(current_user["_id"])
+        is_assigned = await db.course_assignments.find_one({
+            "course_id": mat.get("course_id"),
+            "faculty_user_id": current_user["_id"]
+        })
+        if not is_uploader and not is_assigned:
+            raise HTTPException(status_code=403, detail="You can only delete study materials for courses assigned to you or uploaded by you.")
         
     # Delete from disk
     if os.path.exists(mat.get("file_path", "")):

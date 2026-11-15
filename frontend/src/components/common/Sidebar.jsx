@@ -1,5 +1,5 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useState } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard,
@@ -14,11 +14,22 @@ import {
   UserCheck,
   BarChart3,
   Clock,
-  X
+  X,
+  LogOut
 } from 'lucide-react';
+import LogoutConfirmModal from './LogoutConfirmModal';
 
 const Sidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
-  const { role } = useAuth();
+  const { role, logout } = useAuth();
+  const navigate = useNavigate();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
+    if (setMobileMenuOpen) setMobileMenuOpen(false);
+    await logout();
+    navigate('/login');
+  };
 
   const adminLinks = [
     { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -142,13 +153,29 @@ const Sidebar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
             </div>
           </div>
 
-          {/* Drawer Footer */}
-          <div className="p-4 border-t border-slate-800 text-xs text-slate-400 bg-slate-950/40">
-            <p className="font-semibold text-slate-300">Gayatri Vidya Parishad</p>
-            <p className="text-[11px] text-slate-500">CSE (Cyber Security) • ELC</p>
+          {/* Drawer Footer with Exit Button */}
+          <div className="p-4 border-t border-slate-800 space-y-3 bg-slate-950/40">
+            <button
+              type="button"
+              onClick={() => setShowLogoutModal(true)}
+              className="w-full flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/50 text-xs font-semibold transition cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Exit / Sign Out</span>
+            </button>
+            <div className="text-xs text-slate-400">
+              <p className="font-semibold text-slate-300">Gayatri Vidya Parishad</p>
+              <p className="text-[11px] text-slate-500">CSE (Cyber Security) • ELC</p>
+            </div>
           </div>
         </div>
       </div>
+
+      <LogoutConfirmModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={confirmLogout}
+      />
     </>
   );
 };

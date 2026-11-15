@@ -12,7 +12,8 @@ import {
   Download,
   Eye,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Trash2
 } from 'lucide-react';
 import DocumentViewerModal from '../../components/common/DocumentViewerModal';
 
@@ -46,6 +47,16 @@ const CourseDetail = () => {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteMaterial = async (id, title) => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${title || 'this study material'}"?`)) return;
+    try {
+      await api.delete(`/materials/${id}`);
+      setMaterials((prev) => prev.filter((m) => m._id !== id));
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to delete study material.');
     }
   };
 
@@ -282,13 +293,24 @@ const CourseDetail = () => {
                     <p className="text-xs text-slate-500 mt-0.5">{m.category} • {m.file_type?.toUpperCase()}</p>
                     <p className="text-[11px] text-slate-600 mt-1">{m.description}</p>
                   </div>
-                  <button
-                    onClick={() => setSelectedMaterial(m)}
-                    className="p-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-semibold flex items-center space-x-1 shrink-0"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>View</span>
-                  </button>
+                  <div className="flex items-center space-x-1.5 shrink-0">
+                    <button
+                      onClick={() => setSelectedMaterial(m)}
+                      className="p-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-semibold flex items-center space-x-1 transition"
+                      title="View & Preview Document"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>View</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteMaterial(m._id, m.title)}
+                      className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-semibold flex items-center space-x-1 transition"
+                      title="Delete Study Material"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
