@@ -71,7 +71,7 @@ def serve_material_file(file_path: str, original_name: str, inline: bool = False
     _, ext = os.path.splitext(original_name)
     ext = ext.lower()
     media_type = ALLOWED_EXTENSIONS.get(ext, "application/octet-stream")
-    disposition = "inline" if inline and (ext in [".pdf", ".png", ".jpg", ".jpeg", ".txt"]) else "attachment"
+    disposition = "inline" if inline else "attachment"
     
     return FileResponse(
         path=file_path,
