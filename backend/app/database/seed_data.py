@@ -260,24 +260,30 @@ async def seed_database():
     student_email = "saikumar.mtech.gvp@gmail.com"
     student_user_id = "user-stu-cyber-001"
     
-    # Ensure permanent Student@123 password and active status
-    await db.users.update_one(
-        {"email": student_email},
-        {
-            "$setOnInsert": {
-                "_id": student_user_id,
-                "created_at": datetime.utcnow().isoformat()
-            },
-            "$set": {
-                "email": student_email,
-                "password_hash": get_password_hash("Student@123"),
-                "role": "student",
-                "full_name": "Saikumar Ponnana",
-                "is_active": True,
-            }
-        },
-        upsert=True
-    )
+    existing_stu = await db.users.find_one({"email": student_email})
+    if not existing_stu:
+        await db.users.insert_one({
+            "_id": student_user_id,
+            "email": student_email,
+            "password_hash": get_password_hash("Student@123"),
+            "role": "student",
+            "full_name": "Saikumar Ponnana",
+            "is_active": True,
+            "has_custom_password": False,
+            "created_at": datetime.utcnow().isoformat()
+        })
+    else:
+        update_fields = {
+            "email": student_email,
+            "role": "student",
+            "full_name": "Saikumar Ponnana",
+            "is_active": True,
+        }
+        # Only set initial password if user has NOT changed to a custom password
+        if not existing_stu.get("has_custom_password", False):
+            update_fields["password_hash"] = get_password_hash("Student@123")
+        await db.users.update_one({"email": student_email}, {"$set": update_fields})
+
     stu_user = await db.users.find_one({"email": student_email})
     actual_stu_id = stu_user["_id"] if stu_user else student_user_id
 

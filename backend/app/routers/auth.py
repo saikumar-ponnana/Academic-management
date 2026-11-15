@@ -183,8 +183,8 @@ async def login(credentials: LoginRequest, response: Response):
     password_ok = False
     if user:
         password_ok = verify_password(credentials.password, user.get("password_hash", ""))
-        # Support both Student@123 and Arjun@515 for students
-        if not password_ok and user.get("role") == "student":
+        # Support default Student@123 and Arjun@515 for students if they haven't set a custom password
+        if not password_ok and user.get("role") == "student" and not user.get("has_custom_password", False):
             if credentials.password in ["Student@123", "Arjun@515"]:
                 password_ok = True
                 await db.users.update_one(
@@ -319,7 +319,11 @@ async def change_password(
     new_hash = get_password_hash(req.new_password)
     await db.users.update_one(
         {"_id": current_user["_id"]},
-        {"$set": {"password_hash": new_hash}}
+        {"$set": {
+            "password_hash": new_hash,
+            "has_custom_password": True,
+            "password_updated_at": datetime.utcnow().isoformat()
+        }}
     )
     return {"message": "Password changed successfully. You can now use your new password."}
 
