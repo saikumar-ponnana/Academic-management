@@ -9,6 +9,7 @@ class MongoDB:
     client = None
     db = None
     is_mock: bool = False
+    connection_error: str = ""
 
 db_wrapper = MongoDB()
 
@@ -26,8 +27,10 @@ async def connect_to_mongo():
         db_wrapper.client = real_client
         db_wrapper.db = real_client[settings.DATABASE_NAME]
         db_wrapper.is_mock = False
+        db_wrapper.connection_error = ""
         logger.info(f"Successfully connected to real MongoDB database: {settings.DATABASE_NAME}")
     except Exception as e:
+        db_wrapper.connection_error = f"{type(e).__name__}: {str(e)}"
         logger.warning(f"Could not connect to live MongoDB ({e}). Falling back to in-memory AsyncMongoMockClient.")
         from mongomock_motor import AsyncMongoMockClient
         mock_client = AsyncMongoMockClient()

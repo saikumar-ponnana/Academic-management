@@ -92,6 +92,7 @@ async def health_check():
         "status": "healthy",
         "service": "elc_academic_backend",
         "is_mock_database": db_wrapper.is_mock,
+        "connection_error": db_wrapper.connection_error,
         "database_name": settings.DATABASE_NAME,
         "mongodb_host": masked_url
     }
