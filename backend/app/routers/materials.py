@@ -64,6 +64,7 @@ async def upload_study_material(
         "original_filename": file_info["original_name"],
         "stored_filename": file_info["stored_name"],
         "file_path": file_info["file_path"],
+        "file_base64": file_info.get("file_base64"),
         "gridfs_id": file_info.get("gridfs_id"),
         "file_type": file_info["file_type"],
         "mime_type": file_info["mime_type"],
@@ -124,7 +125,7 @@ async def list_study_materials(
             {"faculty_name": {"$regex": search, "$options": "i"}}
         ]
         
-    materials = await db.study_materials.find(query).sort("uploaded_at", -1).to_list(500)
+    materials = await db.study_materials.find(query, {"file_base64": 0}).sort("uploaded_at", -1).to_list(500)
     for m in materials:
         m["_id"] = str(m["_id"])
     return materials
@@ -157,6 +158,7 @@ async def get_study_material_detail(id: str, current_user: dict = Depends(get_cu
         
     await verify_material_access(mat, current_user, db)
     mat["_id"] = str(mat["_id"])
+    mat.pop("file_base64", None)
     return mat
 
 @router.get("/{id}/download")

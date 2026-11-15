@@ -382,8 +382,11 @@ async def seed_database():
                 z.writestr("word/document.xml", doc_xml)
             return buf.getvalue()
 
+        import base64
+
         docx_content = create_ml_lab_docx_bytes()
         filename = "Machine Learning Cyber Security Lab Manual.docx"
+        file_b64 = base64.b64encode(docx_content).decode("ascii")
         
         # Save to GridFS
         gridfs_id = None
@@ -392,7 +395,7 @@ async def seed_database():
             fs = AsyncIOMotorGridFSBucket(db)
             uploaded_id = await fs.upload_from_stream(
                 filename,
-                docx_content,
+                io.BytesIO(docx_content),
                 metadata={"contentType": ALLOWED_EXTENSIONS[".docx"]}
             )
             gridfs_id = str(uploaded_id)
@@ -420,6 +423,7 @@ async def seed_database():
                     "original_filename": filename,
                     "stored_filename": "Machine_Learning_Cyber_Security_Lab_Manual.docx",
                     "file_path": "",
+                    "file_base64": file_b64,
                     "gridfs_id": gridfs_id,
                     "file_type": "docx",
                     "mime_type": ALLOWED_EXTENSIONS[".docx"],
@@ -429,6 +433,6 @@ async def seed_database():
             },
             upsert=True
         )
-        logger.info("Seeded official ML Lab Manual for Dr. P. Muralidhar Rao into study_materials with persistent GridFS.")
+        logger.info("Seeded official ML Lab Manual for Dr. P. Muralidhar Rao into study_materials with persistent DB-native & GridFS storage.")
 
     logger.info("Production baseline initialized: Settings, Faculty, Courses, Timetable, Student, and Materials verified.")

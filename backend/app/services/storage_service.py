@@ -1,6 +1,8 @@
 import os
 import uuid
 import logging
+import base64
+import io
 from bson import ObjectId
 from fastapi import UploadFile, HTTPException, status, Response
 from fastapi.responses import FileResponse
@@ -60,7 +62,10 @@ async def save_uploaded_material(file: UploadFile, max_size_mb: int = 10, db = N
     except Exception as e:
         logger.warning(f"Failed to write file locally: {e}")
 
-    # 2. Permanent MongoDB GridFS cloud persistence (survives Render restarts)
+    # 2. Database-native base64 persistence (100% immune to Render ephemeral disk restarts)
+    file_b64 = base64.b64encode(content).decode("ascii")
+
+    # 3. Permanent MongoDB GridFS cloud persistence
     gridfs_id = None
     if db is not None:
         try:
@@ -68,7 +73,7 @@ async def save_uploaded_material(file: UploadFile, max_size_mb: int = 10, db = N
             fs = AsyncIOMotorGridFSBucket(db)
             uploaded_id = await fs.upload_from_stream(
                 filename,
-                content,
+                io.BytesIO(content),
                 metadata={
                     "contentType": ALLOWED_EXTENSIONS[ext],
                     "unique_name": unique_name
@@ -83,6 +88,7 @@ async def save_uploaded_material(file: UploadFile, max_size_mb: int = 10, db = N
         "stored_name": unique_name,
         "original_name": filename,
         "file_path": file_path,
+        "file_base64": file_b64,
         "gridfs_id": gridfs_id,
         "file_type": ext.lstrip("."),
         "mime_type": ALLOWED_EXTENSIONS[ext],
@@ -92,9 +98,12 @@ async def save_uploaded_material(file: UploadFile, max_size_mb: int = 10, db = N
 async def serve_material_file(material: Any, original_name: str, inline: bool = False, db = None):
     gridfs_id = None
     file_path = ""
+    file_base64 = None
+    
     if isinstance(material, dict):
         gridfs_id = material.get("gridfs_id")
         file_path = material.get("file_path", "")
+        file_base64 = material.get("file_base64")
     elif isinstance(material, str):
         file_path = material
         
@@ -103,7 +112,19 @@ async def serve_material_file(material: Any, original_name: str, inline: bool = 
     media_type = ALLOWED_EXTENSIONS.get(ext, "application/octet-stream")
     disposition = "inline" if inline else "attachment"
 
-    # 1. Read from MongoDB GridFS if available (permanent cloud storage)
+    # 1. Highest priority: instant in-memory base64 from MongoDB document (100% reliable)
+    if file_base64:
+        try:
+            file_bytes = base64.b64decode(file_base64)
+            return Response(
+                content=file_bytes,
+                media_type=media_type,
+                headers={"Content-Disposition": f'{disposition}; filename="{original_name}"'}
+            )
+        except Exception as e:
+            logger.warning(f"Base64 decode failed: {e}")
+
+    # 2. Second priority: stream from MongoDB GridFS
     if db is not None and gridfs_id:
         try:
             from motor.motor_asyncio import AsyncIOMotorGridFSBucket
@@ -116,9 +137,9 @@ async def serve_material_file(material: Any, original_name: str, inline: bool = 
                 headers={"Content-Disposition": f'{disposition}; filename="{original_name}"'}
             )
         except Exception as e:
-            logger.warning(f"Could not read from GridFS ({gridfs_id}): {e}, attempting disk fallback")
+            logger.warning(f"Could not read from GridFS ({gridfs_id}): {e}")
 
-    # 2. Fallback to local disk if present
+    # 3. Third priority: local disk file
     if file_path and os.path.exists(file_path):
         return FileResponse(
             path=file_path,
@@ -127,7 +148,7 @@ async def serve_material_file(material: Any, original_name: str, inline: bool = 
             headers={"Content-Disposition": f'{disposition}; filename="{original_name}"'}
         )
 
-    # 3. Neither source available
+    # 4. Neither source available
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="The requested file content is no longer available on storage. Please contact the instructor or upload again."
