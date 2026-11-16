@@ -38,7 +38,7 @@ async def check_attendance_eligibility(
     Enforces:
     1. Faculty ownership (faculty must own the session unless admin).
     2. Session not cancelled.
-    3. Scheduled class has ended (current time >= session end_time on today's date).
+    3. Today's session access: Faculty can mark/submit attendance throughout the day prior to 7:00 PM cutoff.
     4. 7:00 PM cutoff on the session date:
        - If current time >= 19:00:00 on the class date or date is in past, reject UNLESS active approved override exists.
     Returns: (is_eligible, reason_or_status_message, active_override)
@@ -73,13 +73,9 @@ async def check_attendance_eligibility(
     if is_admin:
         return True, "Admin access granted", override
 
-    # Check class start / end time rule:
-    # A class cannot accept attendance before it finishes
+    # Check class date rule:
+    # On the class date, faculty has access to mark and submit attendance throughout the day until the 7:00 PM cutoff.
     if session_date_str == today_str:
-        # If class has not ended yet
-        if current_time_str < session_end_time:
-            return False, f"Attendance submission is only allowed after the scheduled class has ended ({session_end_time}).", None
-
         # Check 7:00 PM cutoff
         if current_time_str >= cutoff_time_str:
             if override:

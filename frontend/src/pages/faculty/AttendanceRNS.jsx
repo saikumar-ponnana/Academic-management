@@ -58,7 +58,7 @@ const AttendanceRNS = () => {
               </div>
               <h2 className="text-2xl font-bold mt-1">Attendance / RNS Submission Portal</h2>
               <p className="text-xs text-amber-100 mt-1 max-w-2xl leading-relaxed">
-                Faculty must submit attendance for scheduled classes by <strong>7:00 PM (19:00:00 IST)</strong> on the class date. Sessions lock strictly at 7:00 PM. A class must have concluded before attendance can be marked.
+                Faculty must submit attendance for scheduled classes by <strong>7:00 PM (19:00:00 IST)</strong> on the class date. Sessions lock strictly at 7:00 PM cutoff.
               </p>
             </div>
           </div>

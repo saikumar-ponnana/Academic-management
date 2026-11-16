@@ -143,7 +143,7 @@ const AttendanceRegister = () => {
       </div>
 
       {/* RNS Cutoff Alert Banner */}
-      {!isEligible && (
+      {!isEligible ? (
         <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-900 flex items-start space-x-3">
           <Lock className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
           <div>
@@ -152,6 +152,18 @@ const AttendanceRegister = () => {
               {data?.eligibility_message || 'Attendance submission is closed for today. The deadline was 7:00 PM. Please contact the administrator.'}
             </p>
           </div>
+        </div>
+      ) : (
+        <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 flex items-center justify-between">
+          <div className="flex items-center space-x-2.5">
+            <Clock className="w-4 h-4 text-blue-600 shrink-0" />
+            <span className="text-xs font-medium text-blue-800">
+              Attendance Register is <strong>Open</strong> for today's scheduled class. Submission locks at <strong>7:00 PM IST</strong>.
+            </span>
+          </div>
+          <span className="text-[11px] font-mono font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-md">
+            Daily Cutoff: 7:00 PM IST
+          </span>
         </div>
       )}
 
