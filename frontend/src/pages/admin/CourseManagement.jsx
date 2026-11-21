@@ -18,17 +18,19 @@ const CourseManagement = () => {
     code: '',
     name: '',
     department_code: 'CYBER',
-    semester: 3,
+    semester: 1,
     credits: 3,
-    description: ''
+    description: '',
+    faculty_user_id: '',
+    auto_enroll_students: true
   });
 
   // Assignment form
   const [assignForm, setAssignForm] = useState({
     faculty_user_id: '',
     department_code: 'CYBER',
-    semester: 3,
-    section: 'A',
+    semester: 1,
+    section: '1',
     academic_year: '2026-2027'
   });
 
@@ -72,16 +74,21 @@ const CourseManagement = () => {
     e.preventDefault();
     setError('');
     try {
-      await api.post('/courses', courseForm);
-      setMsg(`Subject '${courseForm.name}' (${courseForm.code}) added successfully.`);
+      const res = await api.post('/courses', courseForm);
+      const enrMsg = res.data?.enrolled_students_count
+        ? ` (${res.data.enrolled_students_count} students auto-enrolled)`
+        : '';
+      setMsg(`Subject '${courseForm.name}' (${courseForm.code}) added successfully${enrMsg}.`);
       setCourseModal(false);
       setCourseForm({
         code: '',
         name: '',
         department_code: departments[0]?.code || 'CYBER',
-        semester: 3,
+        semester: 1,
         credits: 3,
-        description: ''
+        description: '',
+        faculty_user_id: '',
+        auto_enroll_students: true
       });
       fetchData();
     } catch (err) {
@@ -209,6 +216,16 @@ const CourseManagement = () => {
                   <h3 className="text-base font-bold text-slate-800 mt-2">{c.name}</h3>
                   <p className="text-xs text-slate-500">Branch: <span className="font-semibold text-slate-700">{c.department_code}</span> • Semester {c.semester}</p>
                   <p className="text-xs text-slate-600 mt-2 line-clamp-2">{c.description || 'No description provided.'}</p>
+                  
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span className="flex items-center space-x-1 text-slate-600 font-medium">
+                      <Users className="w-3.5 h-3.5 text-blue-600" />
+                      <span>{c.enrolled_students_count ?? 0} Students Enrolled</span>
+                    </span>
+                    <span className="text-[11px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded">
+                      {c.assigned_faculty_name || 'No Teacher Mapped'}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
@@ -364,6 +381,36 @@ const CourseManagement = () => {
                       <option key={sem} value={sem}>Semester {sem}</option>
                     ))}
                   </select>
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-slate-600 font-semibold uppercase mb-1">
+                    Assign Faculty Teacher (Optional)
+                  </label>
+                  <select
+                    value={courseForm.faculty_user_id}
+                    onChange={(e) => setCourseForm({ ...courseForm, faculty_user_id: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  >
+                    <option value="">-- Assign Faculty Later --</option>
+                    {faculty.map((f) => (
+                      <option key={f.user_id} value={f.user_id}>
+                        {f.full_name} ({f.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="col-span-2">
+                  <label className="flex items-center space-x-2 text-slate-700 font-medium cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={courseForm.auto_enroll_students}
+                      onChange={(e) => setCourseForm({ ...courseForm, auto_enroll_students: e.target.checked })}
+                      className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>Automatically enroll all active students of this Branch & Semester</span>
+                  </label>
                 </div>
 
                 <div className="col-span-2">

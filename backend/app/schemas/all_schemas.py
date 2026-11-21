@@ -108,6 +108,8 @@ class CourseCreateRequest(BaseModel):
     semester: int
     credits: int = 3
     description: Optional[str] = ""
+    faculty_user_id: Optional[str] = None
+    auto_enroll_students: bool = True
 
 class CourseAssignmentRequest(BaseModel):
     course_id: str

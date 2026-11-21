@@ -11,6 +11,7 @@ async def create_course(
     req: CourseCreateRequest,
     current_user: dict = Depends(require_role(["admin"]))
 ):
+    import uuid
     db = get_database()
     code = req.code.strip().upper()
     existing = await db.courses.find_one({"code": code})
@@ -18,18 +19,111 @@ async def create_course(
         raise HTTPException(status_code=400, detail=f"Course with code '{code}' already exists.")
     
     course_id = f"CRS-{code}"
+    now_iso = datetime.utcnow().isoformat()
+    dept_code = req.department_code.strip().upper()
+    
     doc = {
         "_id": course_id,
         "code": code,
         "name": req.name.strip(),
-        "department_code": req.department_code.strip().upper(),
+        "department_code": dept_code,
         "semester": req.semester,
         "credits": req.credits,
         "description": req.description or "",
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": now_iso
     }
     await db.courses.insert_one(doc)
+
+    enrolled_count = 0
+    # 1. Auto-enroll existing students matching this department and semester
+    if req.auto_enroll_students:
+        students = await db.student_profiles.find({
+            "department_code": dept_code,
+            "semester": req.semester
+        }).to_list(500)
+
+        for s in students:
+            enr_id = f"ENR-{uuid.uuid4().hex[:8].upper()}"
+            await db.enrollments.update_one(
+                {"student_user_id": s["user_id"], "course_id": course_id},
+                {
+                    "$setOnInsert": {
+                        "_id": enr_id,
+                        "enrolled_at": now_iso
+                    },
+                    "$set": {
+                        "student_user_id": s["user_id"],
+                        "student_name": s.get("full_name"),
+                        "roll_number": s.get("roll_number"),
+                        "course_id": course_id,
+                        "course_code": code,
+                        "department_code": dept_code,
+                        "semester": req.semester,
+                        "section": s.get("section", "1"),
+                        "academic_year": s.get("academic_year", "2026-27"),
+                        "status": "enrolled"
+                    }
+                },
+                upsert=True
+            )
+            enrolled_count += 1
+
+    # 2. Map faculty if provided
+    fac_name = None
+    if req.faculty_user_id:
+        fac = await db.faculty_profiles.find_one({"user_id": req.faculty_user_id})
+        fac_name = fac.get("full_name") if fac else "Faculty Instructor"
+        asg_id = f"ASG-{course_id}-{req.faculty_user_id}"
+        await db.course_assignments.update_one(
+            {"course_id": course_id, "faculty_user_id": req.faculty_user_id},
+            {
+                "$set": {
+                    "_id": asg_id,
+                    "course_id": course_id,
+                    "course_code": code,
+                    "course_name": doc["name"],
+                    "faculty_user_id": req.faculty_user_id,
+                    "faculty_name": fac_name,
+                    "department_code": dept_code,
+                    "semester": req.semester,
+                    "section": "1",
+                    "academic_year": "2026-2027",
+                    "status": "active",
+                    "assigned_at": now_iso
+                }
+            },
+            upsert=True
+        )
+
+    # 3. Create baseline syllabus & study material record
+    mat_id = f"MAT-{code}-SYLLABUS"
+    await db.study_materials.update_one(
+        {"_id": mat_id},
+        {
+            "$set": {
+                "_id": mat_id,
+                "title": f"{doc['name']} - Syllabus & Course Curriculum",
+                "description": doc["description"] or f"Official academic syllabus and curriculum guidelines for {code}: {doc['name']}.",
+                "course_id": course_id,
+                "course_code": code,
+                "course_name": doc["name"],
+                "department_code": dept_code,
+                "semester": req.semester,
+                "category": "Syllabus",
+                "visibility": "PUBLIC",
+                "faculty_user_id": req.faculty_user_id or "admin",
+                "faculty_name": fac_name or "Academic Administration",
+                "file_type": "info",
+                "uploaded_at": now_iso
+            }
+        },
+        upsert=True
+    )
+
     doc["_id"] = str(doc["_id"])
+    doc["enrolled_students_count"] = enrolled_count
+    doc["faculty_assigned"] = fac_name
+    doc["materials_count"] = 1
     return doc
 
 @router.delete("/{course_id}")
@@ -66,6 +160,12 @@ async def get_courses(current_user: dict = Depends(get_current_user)):
         
     for c in courses:
         c["_id"] = str(c["_id"])
+        # Quick counts for UI cards
+        c_id = c["_id"]
+        c["enrolled_students_count"] = await db.enrollments.count_documents({"course_id": c_id, "status": "enrolled"})
+        asg = await db.course_assignments.find_one({"course_id": c_id, "status": "active"})
+        c["assigned_faculty_name"] = asg.get("faculty_name") if asg else None
+        c["materials_count"] = await db.study_materials.count_documents({"course_id": c_id})
     return courses
 
 @router.get("/{course_id}")
