@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import HeaderBanner from '../../components/common/HeaderBanner';
-import { Lock, Mail, Eye, EyeOff, AlertCircle, ShieldCheck, GraduationCap, Briefcase, UserPlus } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, AlertCircle, ShieldCheck, UserPlus } from 'lucide-react';
 import api from '../../services/api';
 
 const LoginPage = () => {
-  const [selectedRole, setSelectedRole] = useState('student');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -16,15 +15,16 @@ const LoginPage = () => {
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotMsg, setForgotMsg] = useState('');
 
-  const { login } = useAuth();
+  const { user, login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const handleRoleSelect = (role) => {
-    setSelectedRole(role);
-    setEmail('');
-    setPassword('');
-    setError('');
-  };
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.role === 'admin') navigate('/admin/dashboard', { replace: true });
+      else if (user.role === 'faculty') navigate('/faculty/dashboard', { replace: true });
+      else navigate('/student/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -57,30 +57,6 @@ const LoginPage = () => {
     }
   };
 
-  const getRoleDetails = () => {
-    if (selectedRole === 'admin') {
-      return {
-        label: 'Administrator Email or ID',
-        placeholder: 'e.g. admin@elc.edu',
-        helper: 'Authorized Institutional Administrators only'
-      };
-    } else if (selectedRole === 'faculty') {
-      return {
-        label: 'Faculty ID or Institutional Email',
-        placeholder: 'e.g. muralidhar@elc.edu or FAC-CYBER-003',
-        helper: 'Approved Gayatri Vidya Parishad Faculty members'
-      };
-    } else {
-      return {
-        label: 'Roll Number or Student Email',
-        placeholder: 'e.g. 26GVPCYB001 or your registered email',
-        helper: 'Enrolled M.Tech CSE (Cyber Security) students'
-      };
-    }
-  };
-
-  const roleDetails = getRoleDetails();
-
   return (
     <div className="min-h-screen bg-slate-50/70 flex flex-col justify-between">
       {/* 1. Gayatri Vidya Parishad Static Photo Header */}
@@ -102,56 +78,6 @@ const LoginPage = () => {
             </p>
           </div>
 
-          {/* Role Selection Tabs: Keeps inputs clean and empty for user entry */}
-          <div className="mb-5">
-            <div className="flex items-center justify-between mb-1.5 px-0.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                Sign In As
-              </span>
-              <span className="text-[11px] text-[#0e387a] font-semibold">
-                {roleDetails.helper}
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200">
-              <button
-                type="button"
-                onClick={() => handleRoleSelect('student')}
-                className={`py-2 px-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
-                  selectedRole === 'student'
-                    ? 'bg-white text-[#0e387a] shadow-xs border border-slate-200'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-                }`}
-              >
-                <GraduationCap className="w-3.5 h-3.5" />
-                <span>Student</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleRoleSelect('faculty')}
-                className={`py-2 px-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
-                  selectedRole === 'faculty'
-                    ? 'bg-white text-[#0e387a] shadow-xs border border-slate-200'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-                }`}
-              >
-                <Briefcase className="w-3.5 h-3.5" />
-                <span>Faculty</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleRoleSelect('admin')}
-                className={`py-2 px-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
-                  selectedRole === 'admin'
-                    ? 'bg-white text-[#0e387a] shadow-xs border border-slate-200'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-                }`}
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Admin</span>
-              </button>
-            </div>
-          </div>
-
           {error && (
             <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 flex items-start space-x-2 text-red-700 text-xs">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -162,19 +88,22 @@ const LoginPage = () => {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                {roleDetails.label}
+                Email, Roll Number, or Faculty ID
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   required
-                  placeholder={roleDetails.placeholder}
+                  placeholder="e.g. 26GVPCYB001, faculty ID, or email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#0e387a] focus:bg-white transition"
                 />
               </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Enter your credentials to automatically enter your portal.
+              </p>
             </div>
 
             <div>
@@ -240,8 +169,18 @@ const LoginPage = () => {
             </Link>
           </div>
 
+          {/* Back to Home Link */}
+          <div className="mt-4 text-center">
+            <Link
+              to="/"
+              className="text-xs text-slate-500 hover:text-[#0e387a] font-semibold transition inline-flex items-center space-x-1"
+            >
+              <span>← Back to Gayatri Vidya Parishad Portal Home</span>
+            </Link>
+          </div>
+
           {/* Institutional Note */}
-          <div className="mt-5 pt-4 border-t border-slate-200 text-center">
+          <div className="mt-4 pt-3 border-t border-slate-200 text-center">
             <p className="text-[11px] text-slate-400 font-medium">
               Gayatri Vidya Parishad • Timetable attendance cutoff: 7:00 PM IST
             </p>

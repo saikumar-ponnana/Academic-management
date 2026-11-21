@@ -438,13 +438,21 @@ const RegisterPage = () => {
             </button>
           </form>
 
-          <div className="text-center pt-2 border-t border-slate-200">
+          <div className="text-center pt-2 border-t border-slate-200 space-y-2">
             <p className="text-xs text-slate-600">
               Already have an account?{' '}
               <Link to="/login" className="font-bold text-blue-600 hover:text-blue-800">
                 Sign In
               </Link>
             </p>
+            <div>
+              <Link
+                to="/"
+                className="text-xs text-slate-500 hover:text-[#0e387a] font-semibold transition inline-flex items-center space-x-1"
+              >
+                <span>← Back to Gayatri Vidya Parishad Portal Home</span>
+              </Link>
+            </div>
           </div>
         </div>
       )}
