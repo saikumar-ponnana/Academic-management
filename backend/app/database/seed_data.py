@@ -32,14 +32,41 @@ async def seed_database():
     }
     await db.institution_settings.update_one({"_id": "default"}, {"$set": inst_settings}, upsert=True)
 
-    # 2. Baseline Academic Department: CSE (Cyber Security) only
-    dept = {
-        "_id": "dept-cyber",
-        "code": "CYBER",
-        "name": "CSE (Cyber Security)",
-        "description": "Department of Computer Science & Engineering (Cyber Security) — M.Tech Program"
-    }
-    await db.departments.update_one({"_id": dept["_id"]}, {"$set": dept}, upsert=True)
+    # 2. Institutional Academic Departments (Gayatri Vidya Parishad University)
+    all_depts = [
+        {
+            "_id": "dept-cyber",
+            "code": "CYBER",
+            "name": "CSE (Cyber Security)",
+            "description": "Department of Computer Science & Engineering (Cyber Security) — Flagship Center"
+        },
+        {
+            "_id": "dept-aiml",
+            "code": "AIML",
+            "name": "CSE (AI & Machine Learning)",
+            "description": "Department of Artificial Intelligence & Machine Learning"
+        },
+        {
+            "_id": "dept-cse",
+            "code": "CSE",
+            "name": "Computer Science & Engineering",
+            "description": "Department of Computer Science & Engineering (Core Computing)"
+        },
+        {
+            "_id": "dept-ds",
+            "code": "DS",
+            "name": "Data Science & Analytics",
+            "description": "Department of Data Science & Big Data Systems"
+        },
+        {
+            "_id": "dept-ece",
+            "code": "ECE",
+            "name": "Electronics & Communication",
+            "description": "Department of Electronics & Communication Engineering"
+        }
+    ]
+    for d in all_depts:
+        await db.departments.update_one({"_id": d["_id"]}, {"$set": d}, upsert=True)
 
     # 3. Primary Institutional Administrator
     admin_id = "user-admin-001"

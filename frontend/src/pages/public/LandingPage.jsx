@@ -22,7 +22,15 @@ import {
   Sparkles,
   Server,
   FileText,
-  Layers
+  Layers,
+  Award,
+  BarChart3,
+  Bell,
+  Cpu,
+  Database,
+  Globe,
+  Radio,
+  ExternalLink
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -55,7 +63,7 @@ const LandingPage = () => {
     academic_year: '2026-27',
     faculty_id: '',
     designation: 'Assistant Professor',
-    highest_degree: 'Ph.D. in Cyber Security',
+    highest_degree: 'Ph.D.',
     specialization: 'Cyber Security & Digital Forensics'
   });
 
@@ -100,7 +108,7 @@ const LandingPage = () => {
         password: registerData.password,
         role: registerRole,
         phone: registerData.phone.trim(),
-        department_code: 'CYBER'
+        department_code: registerData.department_code
       };
 
       if (registerRole === 'student') {
@@ -130,6 +138,12 @@ const LandingPage = () => {
     }
   };
 
+  const scrollToHeroForm = (mode) => {
+    setAuthMode(mode);
+    setError('');
+    window.scrollTo({ top: 110, behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-[#0e387a] selection:text-white">
       {/* 1. Official Gayatri Vidya Parishad Static Photo Header */}
@@ -140,53 +154,46 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0e387a] to-[#08224d] flex items-center justify-center text-amber-400 shadow-md shadow-[#0e387a]/20">
-              <ShieldCheck className="w-6 h-6" />
+              <Building className="w-5 h-5 text-amber-300" />
             </div>
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#0e387a] block leading-none">
-                Gayatri Vidya Parishad • ELC Center
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#0e387a] block leading-none">
+                Gayatri Vidya Parishad (GVPIHLR)
               </span>
-              <span className="text-sm font-black text-slate-800 tracking-tight block">
-                Department of CSE (Cyber Security)
+              <span className="text-xs sm:text-sm font-black text-slate-800 tracking-tight block">
+                Integrated University Academic Portal
               </span>
             </div>
           </div>
 
           <div className="hidden lg:flex items-center space-x-6 text-xs font-semibold text-slate-600">
-            <a href="#about" className="hover:text-[#0e387a] transition">About Center</a>
-            <a href="#features" className="hover:text-[#0e387a] transition">RNS Attendance</a>
-            <a href="#curriculum" className="hover:text-[#0e387a] transition">Sem 1 Curriculum</a>
+            <a href="#services" className="hover:text-[#0e387a] transition">Student Services</a>
+            <a href="#departments" className="hover:text-[#0e387a] transition">Academic Departments</a>
+            <a href="#attendance-policy" className="hover:text-[#0e387a] transition">Attendance (7 PM Cutoff)</a>
             <a href="#portals" className="hover:text-[#0e387a] transition">Portals</a>
+            <a href="#about" className="hover:text-[#0e387a] transition">About University</a>
           </div>
 
           <div className="flex items-center space-x-2">
             {isAuthenticated ? (
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => navigate(getDashboardPath())}
-                  className="px-4 py-2 bg-[#0e387a] hover:bg-[#08224d] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center space-x-1.5"
-                >
-                  <span>Dashboard ({user.role?.toUpperCase()})</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              <button
+                onClick={() => navigate(getDashboardPath())}
+                className="px-4 py-2 bg-[#0e387a] hover:bg-[#08224d] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center space-x-1.5"
+              >
+                <span>Dashboard ({user.role?.toUpperCase()})</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             ) : (
               <div className="flex items-center space-x-2 text-xs">
                 <button
-                  onClick={() => {
-                    setAuthMode('login');
-                    window.scrollTo({ top: 120, behavior: 'smooth' });
-                  }}
+                  onClick={() => scrollToHeroForm('login')}
                   className="px-3.5 py-2 font-bold text-[#0e387a] hover:bg-slate-100 rounded-xl border border-slate-300 transition flex items-center space-x-1"
                 >
                   <LogIn className="w-3.5 h-3.5" />
                   <span>Sign In</span>
                 </button>
                 <button
-                  onClick={() => {
-                    setAuthMode('register');
-                    window.scrollTo({ top: 120, behavior: 'smooth' });
-                  }}
+                  onClick={() => scrollToHeroForm('register')}
                   className="px-3.5 py-2 font-bold text-white bg-[#0e387a] hover:bg-[#08224d] rounded-xl shadow-md transition flex items-center space-x-1"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
@@ -198,7 +205,7 @@ const LandingPage = () => {
         </div>
       </nav>
 
-      {/* 3. HERO SECTION WITH SUITABLE LANDING IMAGE & INLINE LOGIN/REGISTER FORM */}
+      {/* 3. HERO SECTION WITH INSTITUTIONAL LANDING VISUAL & INLINE LOGIN/REGISTER FORM */}
       <section className="relative bg-gradient-to-b from-slate-100 via-white to-slate-50 py-8 sm:py-12 border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -210,21 +217,20 @@ const LandingPage = () => {
               <div className="space-y-3">
                 <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#0e387a] text-xs font-bold">
                   <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>GVPIHLR • Distinct Category under Section 3 of UGC Act, 1956</span>
+                  <span>Gayatri Vidya Parishad Institute of Higher Learning & Research (GVPIHLR)</span>
                 </div>
                 
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-                  Academic Management & Attendance Portal
+                  Unified University Academic & Student Lifecycle Portal
                 </h1>
                 
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-2xl">
-                  Official institutional gateway for <strong>M.Tech in CSE (Cyber Security)</strong>. Enforces real-time RNS class attendance with mandatory <strong>7:00 PM IST Cutoff compliance</strong>, cloud study materials, lab manuals, and timetable coordination.
+                  Centralized academic management system for <strong>all departments and programs</strong> across Gayatri Vidya Parishad. Empowering students with real-time class attendance (RNS), digital course materials, weekly timetables, laboratory manuals, and institutional examinations.
                 </p>
               </div>
 
-              {/* SUITABLE LANDING IMAGE / VISUAL SHOWCASE CARD */}
+              {/* SUITABLE LANDING VISUAL SHOWCASE CARD */}
               <div className="relative rounded-2xl overflow-hidden shadow-xl border border-slate-200 bg-gradient-to-br from-[#0e387a] via-[#08224d] to-[#041026] text-white p-6 sm:p-7">
-                {/* Background Pattern & Glow */}
                 <div className="absolute inset-0 opacity-15 pointer-events-none bg-[radial-gradient(#60a5fa_1px,transparent_1px)] [background-size:16px_16px]"></div>
                 
                 <div className="relative z-10 space-y-5">
@@ -242,14 +248,14 @@ const LandingPage = () => {
                           Institution of Excellence • Estd. 1988
                         </span>
                         <h3 className="text-sm sm:text-base font-bold text-white tracking-wide">
-                          Gayatri Vidya Parishad Center
+                          Gayatri Vidya Parishad University Campus
                         </h3>
                       </div>
                     </div>
 
                     <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
                       <Clock className="w-3.5 h-3.5" />
-                      <span>Cutoff: 7:00 PM IST</span>
+                      <span>RNS Cutoff: 7:00 PM IST</span>
                     </span>
                   </div>
 
@@ -262,48 +268,56 @@ const LandingPage = () => {
                     />
                   </div>
 
-                  {/* Feature Badges inside landing visual */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
-                    <div className="p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/15">
-                      <div className="flex items-center space-x-2 text-amber-400 mb-1">
-                        <GraduationCap className="w-4 h-4" />
-                        <span className="text-[11px] font-bold text-white">M.Tech Program</span>
+                  {/* Feature Badges across all college disciplines */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                    <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/15">
+                      <div className="flex items-center space-x-1.5 text-amber-400 mb-0.5">
+                        <GraduationCap className="w-3.5 h-3.5" />
+                        <span className="text-[11px] font-bold text-white">All Programs</span>
                       </div>
-                      <p className="text-[10px] text-slate-300">CSE (Cyber Security) Sem 1 (2026-27)</p>
+                      <p className="text-[10px] text-slate-300">Undergraduate & M.Tech Programs</p>
                     </div>
 
-                    <div className="p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/15">
-                      <div className="flex items-center space-x-2 text-blue-400 mb-1">
-                        <BookOpen className="w-4 h-4" />
-                        <span className="text-[11px] font-bold text-white">Study Materials</span>
+                    <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/15">
+                      <div className="flex items-center space-x-1.5 text-blue-400 mb-0.5">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span className="text-[11px] font-bold text-white">Smart RNS</span>
                       </div>
-                      <p className="text-[10px] text-slate-300">ML Lab Manuals & GridFS Cloud Storage</p>
+                      <p className="text-[10px] text-slate-300">7:00 PM Cutoff Attendance</p>
                     </div>
 
-                    <div className="p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/15 col-span-2 sm:col-span-1">
-                      <div className="flex items-center space-x-2 text-emerald-400 mb-1">
-                        <Server className="w-4 h-4" />
-                        <span className="text-[11px] font-bold text-white">Persistent DB</span>
+                    <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/15">
+                      <div className="flex items-center space-x-1.5 text-purple-400 mb-0.5">
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span className="text-[11px] font-bold text-white">Digital Library</span>
                       </div>
-                      <p className="text-[10px] text-slate-300">MongoDB Atlas Cloud Production Link</p>
+                      <p className="text-[10px] text-slate-300">Lab Manuals & Course Notes</p>
+                    </div>
+
+                    <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/15">
+                      <div className="flex items-center space-x-1.5 text-emerald-400 mb-0.5">
+                        <Server className="w-3.5 h-3.5" />
+                        <span className="text-[11px] font-bold text-white">Atlas Cloud</span>
+                      </div>
+                      <p className="text-[10px] text-slate-300">Persistent Cloud Database</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Quick Academic Details Bar */}
+              {/* Institutional Overview Metrics */}
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Specialization</span>
-                  <span className="text-xs font-bold text-slate-800 mt-0.5 block">Cyber Security</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Academic Scope</span>
+                  <span className="text-xs font-bold text-slate-800 mt-0.5 block">Entire College & University</span>
                 </div>
                 <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Weekly Classes</span>
-                  <span className="text-xs font-bold text-blue-700 mt-0.5 block">30 Scheduled Slots</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Departments</span>
+                  <span className="text-xs font-bold text-blue-700 mt-0.5 block">CSE, Cyber, AIML, DS, ECE</span>
                 </div>
                 <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Location</span>
-                  <span className="text-xs font-bold text-emerald-700 mt-0.5 block">Visakhapatnam, AP</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Campus</span>
+                  <span className="text-xs font-bold text-emerald-700 mt-0.5 block">Kommadi, Visakhapatnam</span>
                 </div>
               </div>
             </div>
@@ -312,7 +326,7 @@ const LandingPage = () => {
             <div className="lg:col-span-5">
               <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/70 border border-slate-200 border-t-4 border-t-[#0e387a] p-6 sm:p-7">
                 
-                {/* If already authenticated, show Welcome Card */}
+                {/* Authenticated View */}
                 {isAuthenticated ? (
                   <div className="text-center py-6 space-y-4">
                     <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200">
@@ -345,12 +359,12 @@ const LandingPage = () => {
                   </div>
                 ) : (
                   <>
-                    {/* Header of Form Card with Mode Toggle */}
+                    {/* Form Card Header with Mode Toggle */}
                     <div className="mb-5">
                       <div className="flex items-center justify-between mb-3">
                         <div>
-                          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Academic Portal Access</h2>
-                          <p className="text-xs text-slate-500">Sign in with your registered credentials</p>
+                          <h2 className="text-lg font-bold text-slate-900 tracking-tight">University Portal Access</h2>
+                          <p className="text-xs text-slate-500">Sign in with your registered college credentials</p>
                         </div>
                         <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0e387a] flex items-center justify-center">
                           <Lock className="w-4 h-4" />
@@ -413,7 +427,7 @@ const LandingPage = () => {
                             <input
                               type="text"
                               required
-                              placeholder="e.g. 26GVPCYB001 or registered email"
+                              placeholder="e.g. 26GVPCYB001, faculty ID, or email"
                               value={loginIdentifier}
                               onChange={(e) => setLoginIdentifier(e.target.value)}
                               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-[#0e387a] focus:bg-white transition"
@@ -465,16 +479,15 @@ const LandingPage = () => {
                             </>
                           ) : (
                             <>
-                              <span>Sign In to ELC Center</span>
+                              <span>Sign In to Academic Portal</span>
                               <ArrowRight className="w-4 h-4" />
                             </>
                           )}
                         </button>
                       </form>
                     ) : (
-                      /* MODE 2: FAST INLINE REGISTRATION FORM */
+                      /* MODE 2: FAST INLINE REGISTRATION FORM ACROSS ALL DEPARTMENTS */
                       <form onSubmit={handleInlineRegister} className="space-y-3">
-                        {/* Student / Faculty Toggle */}
                         <div className="flex rounded-lg bg-slate-100 p-0.5 border border-slate-200">
                           <button
                             type="button"
@@ -494,6 +507,21 @@ const LandingPage = () => {
                           >
                             Faculty Registration
                           </button>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 uppercase">Department</label>
+                          <select
+                            value={registerData.department_code}
+                            onChange={(e) => setRegisterData({ ...registerData, department_code: e.target.value })}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:bg-white"
+                          >
+                            <option value="CYBER">CSE (Cyber Security) • M.Tech</option>
+                            <option value="AIML">CSE (AI & Machine Learning)</option>
+                            <option value="CSE">Computer Science & Engineering (Core)</option>
+                            <option value="DS">Data Science & Analytics</option>
+                            <option value="ECE">Electronics & Communication Engineering</option>
+                          </select>
                         </div>
 
                         <div>
@@ -573,7 +601,6 @@ const LandingPage = () => {
                       </form>
                     )}
 
-                    {/* Bottom Notice */}
                     <div className="mt-4 pt-3 border-t border-slate-100 text-center">
                       <p className="text-[10px] text-slate-400">
                         Attendance cutoff applies daily at <strong>7:00 PM IST</strong> under Gayatri Vidya Parishad institutional policy.
@@ -588,13 +615,319 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* 4. Portal Access Gateways */}
-      <section id="portals" className="py-14 sm:py-16 bg-white border-b border-slate-200">
+      {/* 4. COMPLETE STUDENT ACADEMIC ECOSYSTEM (NOT ONLY ATTENDANCE) */}
+      <section id="services" className="py-14 sm:py-20 bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <span className="text-xs font-bold text-[#0e387a] uppercase tracking-wider block">Comprehensive Student Lifecycle</span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
+              All Essential Academic Services for Students
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 mt-2">
+              Beyond attendance: an integrated portal engineered to manage every aspect of the student journey from admission to graduation.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Service 1: Curriculum & Courses */}
+            <div className="p-6 bg-slate-50/70 hover:bg-slate-50 rounded-2xl border border-slate-200 hover:border-blue-300 transition duration-150 space-y-3">
+              <div className="w-11 h-11 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                <GraduationCap className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900">Course Catalog & Syllabi</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Full course matrices across semesters, credit breakdowns, course learning objectives (CLOs), outcome-based education (OBE) mapping, and prerequisites.
+              </p>
+              <ul className="text-xs text-slate-500 space-y-1 pt-1">
+                <li className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span>Interactive course enrollments</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span>Official syllabus documents</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Service 2: Smart Attendance & RNS */}
+            <div className="p-6 bg-slate-50/70 hover:bg-slate-50 rounded-2xl border border-slate-200 hover:border-amber-300 transition duration-150 space-y-3">
+              <div className="w-11 h-11 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                <Clock className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900">Smart Attendance & RNS System</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Live session-by-session class attendance tracking with subject-wise percentages, 75% statutory minimum threshold alerts, and 7:00 PM IST strict cutoff enforcement.
+              </p>
+              <ul className="text-xs text-slate-500 space-y-1 pt-1">
+                <li className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span>Subject-wise & overall attendance %</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span>Administrative late override tracking</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Service 3: Digital Library & Lab Manuals */}
+            <div className="p-6 bg-slate-50/70 hover:bg-slate-50 rounded-2xl border border-slate-200 hover:border-purple-300 transition duration-150 space-y-3">
+              <div className="w-11 h-11 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900">Digital Library & Lab Manuals</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Direct access to laboratory experiment manuals (e.g. Dr. P. Muralidhar Rao's ML Lab Manual), faculty lecture slides, reference guides, and research archives via GridFS.
+              </p>
+              <ul className="text-xs text-slate-500 space-y-1 pt-1">
+                <li className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                  <span>Instant DOCX and PDF document viewing</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                  <span>Persistent MongoDB Atlas binary storage</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Service 4: Dynamic Timetable & Rooms */}
+            <div className="p-6 bg-slate-50/70 hover:bg-slate-50 rounded-2xl border border-slate-200 hover:border-emerald-300 transition duration-150 space-y-3">
+              <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                <Calendar className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900">Dynamic Timetables & Schedules</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                30 weekly scheduled timetable slots mapped Monday through Saturday, featuring classroom numbers (B4-404), laboratory complexes, lecture hours, and faculty assignments.
+              </p>
+              <ul className="text-xs text-slate-500 space-y-1 pt-1">
+                <li className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Personalized student weekly timetable</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Real-time period indicator</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Service 5: Examinations & Progress */}
+            <div className="p-6 bg-slate-50/70 hover:bg-slate-50 rounded-2xl border border-slate-200 hover:border-cyan-300 transition duration-150 space-y-3">
+              <div className="w-11 h-11 rounded-xl bg-cyan-100 text-cyan-800 flex items-center justify-center font-bold">
+                <BarChart3 className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900">Examinations & Academic Progress</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Continuous internal evaluation (CIE), mid-term examinations, semester-end assessment, grading rubrics, and GPA / CGPA progression analytics.
+              </p>
+              <ul className="text-xs text-slate-500 space-y-1 pt-1">
+                <li className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-700 shrink-0" />
+                  <span>Internal assessment marks transparency</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-700 shrink-0" />
+                  <span>Academic performance metrics</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Service 6: Notices & Placement News */}
+            <div className="p-6 bg-slate-50/70 hover:bg-slate-50 rounded-2xl border border-slate-200 hover:border-rose-300 transition duration-150 space-y-3">
+              <div className="w-11 h-11 rounded-xl bg-rose-100 text-rose-800 flex items-center justify-center font-bold">
+                <Bell className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900">Announcements & Campus Circulars</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Instant university notices, holiday notifications, seminar invitations, coding hackathons, technical symposiums, and institutional placement drives.
+              </p>
+              <ul className="text-xs text-slate-500 space-y-1 pt-1">
+                <li className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                  <span>Official administrative circulars</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                  <span>Student technical activities & workshops</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. TOTAL COLLEGE DEPARTMENTS & SPECIALIZATIONS */}
+      <section id="departments" className="py-14 sm:py-20 bg-slate-50 border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <span className="text-xs font-bold text-[#0e387a] uppercase tracking-wider block">Academic Programs</span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
+              Gayatri Vidya Parishad Academic Departments
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 mt-2">
+              Offering undergraduate, postgraduate, and specialized research programs with modern outcome-based education.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {/* Dept 1: Cyber Security */}
+            <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs border-t-4 border-t-blue-700 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                  CODE: CYBER
+                </span>
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
+                  Flagship ELC Center
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-slate-800">Department of CSE (Cyber Security)</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                M.Tech & Advanced Research in Network Intrusion Detection, Cryptography, Reverse Engineering, Machine Learning for Security, and Ethical Hacking.
+              </p>
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
+                <span>Faculty: Dr. P. Muralidhar Rao & Team</span>
+                <span className="font-bold text-blue-700">Sem 1 Active</span>
+              </div>
+            </div>
+
+            {/* Dept 2: AIML */}
+            <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs border-t-4 border-t-purple-700 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded">
+                  CODE: AIML
+                </span>
+                <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded">
+                  Advanced Computing
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-slate-800">CSE (AI & Machine Learning)</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Deep Learning, Natural Language Processing, Computer Vision, Autonomous Systems, Predictive Analytics, and High-Performance Neural Networks.
+              </p>
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
+                <span>Specialized AI Compute Labs</span>
+                <span className="font-bold text-purple-700">Enrolling</span>
+              </div>
+            </div>
+
+            {/* Dept 3: Core CSE */}
+            <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs border-t-4 border-t-indigo-700 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
+                  CODE: CSE
+                </span>
+                <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
+                  Foundation
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-slate-800">Computer Science & Engineering</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Core Software Engineering, Distributed Systems, Cloud Computing Architectures, Advanced Data Structures, and Compiler Design.
+              </p>
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
+                <span>Full Undergraduate & PG</span>
+                <span className="font-bold text-indigo-700">Active</span>
+              </div>
+            </div>
+
+            {/* Dept 4: Data Science */}
+            <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs border-t-4 border-t-emerald-700 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
+                  CODE: DS
+                </span>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
+                  Analytics
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-slate-800">Data Science & Big Data Systems</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Big Data Analytics, Statistical Inference, Cloud Pipelines, Business Intelligence, Data Warehousing, and Real-Time Stream Processing.
+              </p>
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
+                <span>Analytics Laboratory</span>
+                <span className="font-bold text-emerald-700">Active</span>
+              </div>
+            </div>
+
+            {/* Dept 5: ECE */}
+            <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs border-t-4 border-t-amber-700 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
+                  CODE: ECE
+                </span>
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
+                  Hardware & Telecom
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-slate-800">Electronics & Communication</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                VLSI Design, Embedded Systems, Internet of Things (IoT), Wireless Signal Processing, Microwave Engineering, and Robotics.
+              </p>
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
+                <span>VLSI & IoT Complex</span>
+                <span className="font-bold text-amber-700">Active</span>
+              </div>
+            </div>
+
+            {/* Dept 6: ELC Research Center */}
+            <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs border-t-4 border-t-cyan-700 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-bold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded">
+                  CODE: ELC-CTR
+                </span>
+                <span className="text-[10px] font-bold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded">
+                  Innovation
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-slate-800">ELC Learning & Research Center</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Center for advanced research publications, patent filings, faculty development programs, and interdisciplinary applied engineering projects.
+              </p>
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
+                <span>Interdisciplinary Center</span>
+                <span className="font-bold text-cyan-700">Active</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. INSTITUTIONAL ATTENDANCE POLICY (RNS CUTOFF: 7:00 PM IST) */}
+      <section id="attendance-policy" className="py-12 bg-gradient-to-r from-[#0e387a] to-[#08224d] text-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2 max-w-2xl">
+              <div className="flex items-center space-x-2">
+                <Clock className="w-5 h-5 text-amber-300" />
+                <span className="text-xs uppercase font-bold tracking-wider text-amber-300">
+                  Statutory University Attendance Policy
+                </span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black">Daily 7:00 PM IST Attendance Cutoff Rule</h3>
+              <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                In compliance with Gayatri Vidya Parishad institutional governance, all faculty must submit attendance for scheduled classes on the same day before <strong>7:00 PM IST</strong>. After 7:00 PM, sessions lock strictly and require an administrative override.
+              </p>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center shrink-0">
+              <span className="text-[11px] text-amber-300 font-bold uppercase block">Official Deadline</span>
+              <span className="text-2xl font-black text-white font-mono mt-0.5 block">19:00:00 IST</span>
+              <span className="text-[10px] text-slate-300 mt-1 block">Asia/Kolkata Clock</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. PORTAL ACCESS GATEWAYS (Student, Faculty, Admin) */}
+      <section id="portals" className="py-14 sm:py-20 bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="text-xs font-bold text-[#0e387a] uppercase tracking-wider block">Role Portals</span>
+            <span className="text-xs font-bold text-[#0e387a] uppercase tracking-wider block">Access Gateways</span>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
-              Gayatri Vidya Parishad Portal Gateways
+              Role-Specific Portal Gateways
             </h2>
           </div>
 
@@ -607,15 +940,12 @@ const LandingPage = () => {
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">Student Portal</h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Real-time attendance tracking, Semester 1 weekly timetable schedules, and instant downloads of official laboratory experiment manuals.
+                  Real-time attendance percentage tracking, weekly timetables, course syllabi, and direct downloads of official laboratory manuals across all departments.
                 </p>
               </div>
               <div className="pt-4">
                 <button
-                  onClick={() => {
-                    setAuthMode('login');
-                    window.scrollTo({ top: 100, behavior: 'smooth' });
-                  }}
+                  onClick={() => scrollToHeroForm('login')}
                   className="w-full py-2.5 px-4 bg-white hover:bg-blue-50 text-[#0e387a] font-bold text-xs rounded-xl border border-blue-200 transition flex items-center justify-center space-x-1"
                 >
                   <span>Access Student Portal</span>
@@ -632,15 +962,12 @@ const LandingPage = () => {
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">Faculty Desk</h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Take & submit daily class attendance throughout the day before 7:00 PM IST, save drafts, and upload DOCX/PDF course study materials.
+                  Take & submit daily class attendance throughout the day before 7:00 PM IST, save drafts, manage enrolled student rosters, and upload study materials.
                 </p>
               </div>
               <div className="pt-4">
                 <button
-                  onClick={() => {
-                    setAuthMode('login');
-                    window.scrollTo({ top: 100, behavior: 'smooth' });
-                  }}
+                  onClick={() => scrollToHeroForm('login')}
                   className="w-full py-2.5 px-4 bg-white hover:bg-purple-50 text-purple-800 font-bold text-xs rounded-xl border border-purple-200 transition flex items-center justify-center space-x-1"
                 >
                   <span>Access Faculty Desk</span>
@@ -657,15 +984,12 @@ const LandingPage = () => {
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">Administrative Controller</h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Institutional oversight, student & faculty registration approvals, cutoff overrides, timetable configuration, and audit logs.
+                  Institutional oversight: approve pending student & faculty registrations across all departments, grant late attendance overrides, and audit logs.
                 </p>
               </div>
               <div className="pt-4">
                 <button
-                  onClick={() => {
-                    setAuthMode('login');
-                    window.scrollTo({ top: 100, behavior: 'smooth' });
-                  }}
+                  onClick={() => scrollToHeroForm('login')}
                   className="w-full py-2.5 px-4 bg-white hover:bg-amber-50 text-amber-900 font-bold text-xs rounded-xl border border-amber-200 transition flex items-center justify-center space-x-1"
                 >
                   <span>Access Admin Desk</span>
@@ -677,26 +1001,26 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* 5. Institutional Footer */}
+      {/* 8. INSTITUTIONAL FOOTER */}
       <footer id="about" className="bg-slate-900 text-slate-400 py-10 border-t border-slate-800 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-8 border-b border-slate-800">
             <div>
               <h4 className="text-sm font-bold text-white uppercase tracking-wider">Gayatri Vidya Parishad</h4>
               <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                Institute of Higher Learning and Research (ELC Center)
+                Institute of Higher Learning and Research (GVPIHLR)
               </p>
               <p className="text-xs text-slate-500 mt-2 leading-relaxed">
                 Deemed to be University under Distinct Category under Section 3 of the UGC Act, 1956.
               </p>
             </div>
             <div>
-              <h4 className="text-sm font-bold text-white uppercase tracking-wider">Department</h4>
+              <h4 className="text-sm font-bold text-white uppercase tracking-wider">Academic Disciplines</h4>
               <p className="text-xs text-slate-400 mt-1">
-                Department of Computer Science & Engineering (Cyber Security)
+                Computer Science & Engineering • Cyber Security • AI & Machine Learning • Data Science • Electronics & Communication
               </p>
               <p className="text-xs text-slate-500 mt-1">
-                M.Tech Program • Semester 1 (Academic Year 2026-27)
+                Academic Year 2026-27 • Integrated Academic Management
               </p>
             </div>
             <div>
@@ -713,8 +1037,8 @@ const LandingPage = () => {
           <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
             <span>© 2026 Gayatri Vidya Parishad Institute of Higher Learning & Research. All rights reserved.</span>
             <div className="flex space-x-4">
-              <Link to="/login" className="hover:text-white transition">Sign In</Link>
-              <Link to="/register" className="hover:text-white transition">Register</Link>
+              <button onClick={() => scrollToHeroForm('login')} className="hover:text-white transition">Sign In</button>
+              <button onClick={() => scrollToHeroForm('register')} className="hover:text-white transition">Register</button>
             </div>
           </div>
         </div>
